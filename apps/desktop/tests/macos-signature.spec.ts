@@ -130,6 +130,29 @@ describe('desktop macOS release signature', () => {
       .toThrow(/must be 0 or 1/u)
   })
 
+  it('packages a local macOS application without release signing, policy or update metadata', async () => {
+    const { createElectronBuilderConfig } = await import('../electron-builder.config.mjs')
+    const config = createElectronBuilderConfig({
+      DSH_DESKTOP_APP_ID: 'com.deepseek.harness.local',
+      DSH_DESKTOP_LOCAL_UNSIGNED: '1',
+      DSH_DESKTOP_TARGET_PLATFORM: 'darwin',
+      DSH_DESKTOP_TARGET_ARCH: 'arm64',
+    }, 'darwin', 'arm64')
+    expect(config).toMatchObject({
+      appId: 'com.deepseek.harness.local',
+      productName: 'DeepSeek',
+      mac: { identity: null, forceCodeSigning: false, hardenedRuntime: false, notarize: false },
+      dmg: { sign: false },
+      publish: null,
+    })
+    expect(config.extraMetadata.dshMandatoryUpdatePolicy).toBeUndefined()
+    expect(portablePath(config.directories.output)).toContain('/targets/mac-arm64/local-artifacts')
+    expect(() => createElectronBuilderConfig({
+      DSH_DESKTOP_APP_ID: 'com.deepseek.harness.local', DSH_DESKTOP_LOCAL_UNSIGNED: '1',
+      DSH_DESKTOP_TARGET_PLATFORM: 'win32',
+    }, 'win32', 'x64')).toThrow(/require macOS/u)
+  })
+
   it('accepts the configured authority and team', () => {
     const expected = resolveMacOSSigningEnvironment(RELEASE_ENVIRONMENT)
     expect(() => {

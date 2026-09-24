@@ -107,6 +107,22 @@ After an explicit build, `start:desktop` reconstructs the disposable project and
 pnpm run start:desktop
 ```
 
+For an installable local Apple Silicon app without release signing credentials, build the separate unsigned package:
+
+```sh
+pnpm run package:desktop:mac:arm64:local
+```
+
+The command writes `DeepSeek.app` and a DMG/ZIP whose filenames retain the `deepseek-harness-local` prefix under `apps/desktop/.desktop-build/targets/mac-arm64/local-artifacts/`. It uses the current source version, the separate `com.deepseek.harness.local` application ID, and no update feed or mandatory-update policy. The app is not signed or notarized for distribution. It uses the normal Desktop profile under `$DSH_HOME/profiles/desktop`, so close another Desktop installation before opening this one. Plugins installed in the isolated `dev:desktop` profile are not bundled and can be installed from the packaged app's Plugins page.
+
+To package, install, verify, and launch the local application in one operation, run:
+
+```sh
+pnpm run install:desktop:mac:arm64:local
+```
+
+The command stages and validates the packaged application before stopping the installed local app and replacing `/Applications/DeepSeek.app`. It migrates the earlier `/Applications/DeepSeek Harness Local.app` name when only that application exists, reads back the installed version and application ID, then launches the app and waits for its process. If replacement or launch fails, it restores and relaunches the previous application when one existed. It refuses to choose when both application names already exist.
+
 The Web counterparts are `pnpm run dev:web` and `pnpm run start:web`, documented in the [development guide](../../docs/development.md). Workspace development runs the current CLI and private Desktop Host packages under Electron RunAsNode. Plugin management and recovery use `$DSH_HOME/profiles/desktop`, separate from the disposable workspace runtime. The Host uses runtime module resolution in both development and packaged builds without creating official-package fallback links; developer-installed packages, including links, retain native priority. Use an unpacked application to exercise Electron RunAsNode, bundled pnpm, bundled dsh resources, plugin installation and repair paths.
 
 

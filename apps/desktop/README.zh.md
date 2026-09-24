@@ -107,6 +107,22 @@ pnpm run dev:desktop
 pnpm run start:desktop
 ```
 
+如需在没有发布签名凭据的情况下构建可安装的 Apple Silicon 本机应用，请生成独立的未签名包：
+
+```sh
+pnpm run package:desktop:mac:arm64:local
+```
+
+该命令在 `apps/desktop/.desktop-build/targets/mac-arm64/local-artifacts/` 下生成 `DeepSeek.app` 和文件名保留 `deepseek-harness-local` 前缀的 DMG/ZIP。它使用当前源码版本、独立的 `com.deepseek.harness.local` 应用 ID，且不包含更新源或强制更新策略。此应用未签名，也未经过公证，不用于分发。它使用 `$DSH_HOME/profiles/desktop` 下的正常 Desktop profile，因此打开前应关闭其他 Desktop 安装。隔离 `dev:desktop` profile 中安装的插件不会打入包内，可以从打包应用的插件页面安装。
+
+如需用一次操作完成打包、安装、校验和启动，请运行：
+
+```sh
+pnpm run install:desktop:mac:arm64:local
+```
+
+该命令会先暂存并校验打包应用，再停止已安装的本机应用并替换 `/Applications/DeepSeek.app`。仅存在旧名称时，它会迁移 `/Applications/DeepSeek Harness Local.app`，随后读回已安装版本和应用 ID，启动应用并等待其进程。替换或启动失败时，如果此前存在应用，它会恢复并重新启动旧应用。当两个应用名称同时存在时，命令拒绝自行选择。
+
 Web 侧的对应命令是 `pnpm run dev:web` 与 `pnpm run start:web`，见[开发指南](../../docs/development.zh.md)。Workspace 开发使用 Electron RunAsNode 运行当前 CLI 与私有 Desktop Host 包，插件管理和恢复使用 `$DSH_HOME/profiles/desktop`，与一次性工作区运行时分离。Host 在开发与打包构建中都使用 runtime 模块解析，不创建官方包的 fallback 链接；开发者安装的包（包括链接）保留原生优先级。需要验证 Electron RunAsNode、内置 pnpm、内置 dsh 资源、插件安装和修复时，应运行未封装安装器的应用目录。
 
 
