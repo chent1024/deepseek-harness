@@ -87,6 +87,7 @@ export function ContextMeter({ useProjection, t }: ContextMeterProps) {
   }, [available, open])
 
   if (context === null) return null
+  const visibleBreakdown = context.exact ? undefined : breakdown
   const percent = context.percent
   const reading = `${percent}%`
   const [headBefore = '', headAfter = ''] = t('context.aria', { percent: READING_SLOT })
@@ -97,12 +98,12 @@ export function ContextMeter({ useProjection, t }: ContextMeterProps) {
   // breakdown only proportions its colored parts. A zero-width part is dropped
   // instead of rendered: `.segment`'s min-width keeps a hairline part visible,
   // which at 0% occupancy would draw a filled bar over an empty context.
-  const breakdownTotal = breakdown === undefined
+  const breakdownTotal = visibleBreakdown === undefined
     ? 0
-    : breakdown.systemTokens + breakdown.toolsTokens + breakdown.messageTokens
-  const parts = breakdown === undefined || breakdownTotal === 0
+    : visibleBreakdown.systemTokens + visibleBreakdown.toolsTokens + visibleBreakdown.messageTokens
+  const parts = visibleBreakdown === undefined || breakdownTotal === 0
     ? [{ key: 'total', color: undefined, width: percent }]
-    : ROWS.map(row => ({ key: row.key, color: row.color, width: percent * breakdown[row.key] / breakdownTotal }))
+    : ROWS.map(row => ({ key: row.key, color: row.color, width: percent * visibleBreakdown[row.key] / breakdownTotal }))
   const segments = parts.filter(part => part.width > 0)
 
   return (
@@ -147,7 +148,7 @@ export function ContextMeter({ useProjection, t }: ContextMeterProps) {
             {/* `~`: usedTokens prefers projectedTokens, whose surface delta is
                 heuristically repriced on top of the provider-anchored sample. */}
             <span className={css.figures}>
-              {`~${formatTokens(context.usedTokens, t)} / ${formatTokens(context.contextWindow, t)}`}
+              {`${context.exact ? '' : '~'}${formatTokens(context.usedTokens, t)} / ${formatTokens(context.contextWindow, t)}`}
             </span>
           </div>
           <div className={css.bar}>
@@ -159,7 +160,7 @@ export function ContextMeter({ useProjection, t }: ContextMeterProps) {
               />
             ))}
           </div>
-          {breakdown !== undefined && (
+          {visibleBreakdown !== undefined && (
             <dl className={css.rows}>
               {ROWS.map(row => (
                 <div key={row.key} className={css.row}>
@@ -167,7 +168,7 @@ export function ContextMeter({ useProjection, t }: ContextMeterProps) {
                     <span className={`${css.swatch} ${row.color}`} aria-hidden />
                     {t(row.label)}
                   </dt>
-                  <dd>{`~${formatTokens(breakdown[row.key], t)}`}</dd>
+                  <dd>{`~${formatTokens(visibleBreakdown[row.key], t)}`}</dd>
                 </div>
               ))}
             </dl>

@@ -28,6 +28,16 @@ function meter(values: Record<string, unknown>, translate: ContextMeterProps['t'
 }
 
 describe('ContextMeter', () => {
+  it('shows externally observed occupancy as an exact native reading', () => {
+    const view = meter({ contextPressure: {
+      observedTokens: 600, pressureTokens: 100, projectedTokens: 200, contextWindow: 1_000,
+    }, contextBreakdown: BREAKDOWN })
+    fireEvent.click(view.getByRole('button', { name: '上下文已用 60%' }))
+    const panel = view.getByRole('dialog')
+    expect(panel.textContent).toContain('600 / 1K')
+    expect(panel.textContent).not.toContain('~600')
+    expect(panel.textContent).not.toContain('系统提示词')
+  })
   it('computes occupancy only when both a numerator and capacity are known', () => {
     expect(contextOccupancy({ pressureTokens: 32_000, projectedTokens: 6_000, contextWindow: 128_000 }))
       .toEqual({ percent: 5, usedTokens: 6_000, contextWindow: 128_000 })
