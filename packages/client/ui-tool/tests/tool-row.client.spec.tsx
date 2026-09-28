@@ -34,6 +34,16 @@ const result = (over?: Partial<ToolResultNode>): ToolResultNode => ({
 })
 
 describe('tool-call-model', () => {
+  it('shows the final ACP input when it changed after the native call began', () => {
+    const block = result({ callId: 'acp-projected:attempt:read-1',
+      call: { name: 'read', argsRaw: '{"file_path":"/tmp/first.txt"}' },
+      meta: { acpFinalInput: { file_path: '/tmp/final.txt' } },
+    })
+    const model = toolRowModel('read', block)
+    expect(model.summary).toBe('/tmp/final.txt')
+    expect(model.filePath).toBe('/tmp/final.txt')
+  })
+
   it('classifies known tools and falls back to others', () => {
     expect(classifyTool('bash')).toBe('bash')
     expect(classifyTool('pwsh')).toBe('bash')
@@ -504,6 +514,36 @@ describe('GenericToolCard', () => {
     expect(view.getByText('运行命令')).toBeTruthy()
     expect(view.getByText('List files')).toBeTruthy()
     expect(view.container.querySelector('[data-variant="bash"]')).not.toBeNull()
+  })
+
+  it('shows the recorded ACP title instead of empty JSON for a settled native tool', () => {
+    const block = result({
+      callId: 'acp-projected:attempt:read-1',
+      call: { name: 'read', argsRaw: '{}' },
+      meta: { acpTitle: 'Read /tmp/probe.txt' },
+    })
+    const view = render(<GenericToolCard {...props('read', block)} />)
+    expect(view.getByText('Read /tmp/probe.txt')).toBeTruthy()
+    expect(view.queryByText('{}')).toBeNull()
+  })
+
+  it('labels unavailable ACP input without presenting empty JSON as a command', () => {
+    const block = running({ callId: 'acp-projected:attempt:bash-1', argsRaw: '{}' })
+    const view = render(<GenericToolCard {...props('bash', block)} />)
+    expect(view.getByText('参数未提供')).toBeTruthy()
+    expect(view.queryByText('{}')).toBeNull()
+  })
+
+  it('leaves ordinary empty-argument tools unchanged', () => {
+    const view = render(<GenericToolCard {...props('bash', running({ argsRaw: '{}' }))} />)
+    expect(view.getByText('{}')).toBeTruthy()
+    expect(view.queryByText('参数未提供')).toBeNull()
+    cleanup()
+    const settled = render(<GenericToolCard {...props('read', result({
+      call: { name: 'read', argsRaw: '{}' }, meta: { acpTitle: 'Unrelated title' },
+    }))} />)
+    expect(settled.getByText('{}')).toBeTruthy()
+    expect(settled.queryByText('Unrelated title')).toBeNull()
   })
 
   it.each([

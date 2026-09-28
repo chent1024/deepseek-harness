@@ -25,11 +25,16 @@ export function parsedToolCall(block: ToolCallBlock): ParsedToolCall | null {
     return null
   }
   let value: unknown
-  try {
-    value = JSON.parse(call.argsRaw)
-  } catch {
-    parsedCalls.set(block, null)
-    return null
+  if ('kind' in block && block.callId.startsWith('acp-projected:')
+    && typeof block.meta === 'object' && block.meta !== null && 'acpFinalInput' in block.meta) {
+    value = block.meta.acpFinalInput
+  } else {
+    try {
+      value = JSON.parse(call.argsRaw)
+    } catch {
+      parsedCalls.set(block, null)
+      return null
+    }
   }
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     parsedCalls.set(block, null)

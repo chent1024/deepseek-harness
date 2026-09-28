@@ -144,6 +144,8 @@ export interface ToolRowModel {
   titleKey: ToolTitleKey
   /** Generic rows retain the wire tool name; available arguments append their summary. */
   summary: string
+  /** ACP tool identity is known, but the agent did not provide call arguments. */
+  inputUnavailable: boolean
   /**
    * Filesystem path from args (`path` / `file_path`) when the row is a file
    * tool; absent for URL reads and non-file tools. The chat view resolves
@@ -284,24 +286,32 @@ export function toolRowModel(toolName: string, block: ToolCallBlock, cwd?: strin
   const variant = classifyTool(toolName)
   const titleKey = toolTitleKey(toolName)
   const done = 'kind' in block
-  const argsRaw = done ? block.call?.argsRaw ?? '' : block.phase === 'start' ? block.argsRaw : null
+  const recordedArgs = done ? block.call?.argsRaw ?? '' : block.phase === 'start' ? block.argsRaw : null
+  const argsRaw = done && block.callId.startsWith('acp-projected:') && typeof block.meta === 'object'
+    && block.meta !== null && 'acpFinalInput' in block.meta
+    ? JSON.stringify(block.meta.acpFinalInput) ?? recordedArgs : recordedArgs
+  const acpInputUnavailable = block.callId.startsWith('acp-projected:') && argsRaw === '{}'
+  const acpTitle = done && acpInputUnavailable && typeof block.meta === 'object' && block.meta !== null
+    && 'acpTitle' in block.meta && typeof block.meta.acpTitle === 'string' && block.meta.acpTitle.trim() !== ''
+    ? block.meta.acpTitle : undefined
   const state: ToolRowState = !done ? block.phase === 'preparing' ? 'preparing' : 'running'
     : block.error?.code === 'interrupted' ? 'stopped'
       : block.isError ? 'error' : 'ok'
-  const base = argsRaw === null ? ''
+  const base = acpTitle ?? (acpInputUnavailable ? '' : argsRaw === null ? ''
     : argsRaw === '' ? block.callId
-      : abbreviateHomePath(relativizeToCwd(deriveSummary(variant, argsRaw), cwd), home)
+      : abbreviateHomePath(relativizeToCwd(deriveSummary(variant, argsRaw), cwd), home))
   const summary = [titleKey === 'tool.title.generic' ? toolName : '', base].filter(Boolean).join(' · ')
   // The empty string is "no text" for both derived result fields: a settled
   // call with blank content has nothing to expand, and a blank first line
   // would erase the collapsed error row's summary slot.
   const output = done ? (resultText(block) || null) : null
   const errorSummary = state === 'error' && output !== null ? firstLine(output) : null
-  const bodyRaw = argsRaw === '' ? null : argsRaw
+  const bodyRaw = argsRaw === '' || acpInputUnavailable ? null : argsRaw
   return {
     variant,
     titleKey,
     summary,
+    inputUnavailable: acpInputUnavailable && acpTitle === undefined,
     filePath: argsRaw === null ? undefined : deriveFilePath(variant, argsRaw),
     bodyRaw,
     output,
