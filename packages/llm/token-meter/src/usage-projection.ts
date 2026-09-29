@@ -67,10 +67,12 @@ type TokenUsageState = z.infer<typeof tokenUsageStateSchema>
 const pressureSchema: z.ZodType<ContextPressureProjection> = z.object({
   pressureTokens: z.number().int().nonnegative().optional(),
   projectedTokens: z.number().int().nonnegative().optional(),
+  observedTokens: z.number().int().nonnegative().optional(),
   contextWindow: z.number().int().positive().optional(),
-}).strict().transform(({ pressureTokens, projectedTokens, contextWindow }) => ({
+}).strict().transform(({ pressureTokens, projectedTokens, observedTokens, contextWindow }) => ({
   ...pressureTokens === undefined ? {} : { pressureTokens },
   ...projectedTokens === undefined ? {} : { projectedTokens },
+  ...observedTokens === undefined ? {} : { observedTokens },
   ...contextWindow === undefined ? {} : { contextWindow },
 }))
 
@@ -92,9 +94,17 @@ declare module '@deepseek-ai/dsh-session-projection/types' {
   }
 }
 
+declare module '@deepseek-ai/dsh-session/types' {
+  interface SessionEventMap {
+    /** Exact current occupancy reported by an external agent; informational, never billable usage. */
+    'token-meter/context-observed': { usedTokens: number; contextWindow: number }
+  }
+}
+
 /** The context-pressure state schema and source of its inferred type. */
 const contextPressureStateSchema = z.object({
   contextWindow: z.number().int().positive().optional(),
+  observedTokens: z.number().int().nonnegative().optional(),
   pressureTokens: z.number().int().nonnegative().optional(),
   surfaceTokens: z.number().int().nonnegative(),
   sampledSurfaceTokens: z.number().int().nonnegative().optional(),
@@ -172,13 +182,17 @@ export const tokenUsageProjectionDefinition = {
  */
 export const contextPressureProjectionDefinition = {
   key: 'contextPressure',
-  stateVersion: 5,
+  stateVersion: 6,
   stateSchema: contextPressureStateSchema,
   init: () => ({ surfaceTokens: 0 }),
   apply: (state, event) => {
     const fold = foldSurfaceProjection(state.claim, event)
     let next = state
     if (event.type === 'request/context') {
+      if (next.observedTokens !== undefined) {
+        const { observedTokens: _removed, ...withoutObserved } = next
+        next = withoutObserved
+      }
       const contextWindow = event.data.contextWindow
       if (contextWindow !== state.contextWindow) {
         if (contextWindow !== undefined) {
@@ -189,8 +203,19 @@ export const contextPressureProjectionDefinition = {
         }
       }
     }
+    if (event.type === 'token-meter/context-observed') {
+      const { usedTokens, contextWindow } = event.data
+      if (Number.isSafeInteger(usedTokens) && usedTokens >= 0
+        && Number.isSafeInteger(contextWindow) && contextWindow > 0) {
+        next = { ...next, observedTokens: usedTokens, contextWindow }
+      }
+    }
     const usage = usageOf(event)
     if (usage !== undefined) {
+      if (next.observedTokens !== undefined) {
+        const { observedTokens: _removed, ...withoutObserved } = next
+        next = withoutObserved
+      }
       const pressureTokens = pressureFrom(usage)
       if (pressureTokens !== next.pressureTokens || next.sampledSurfaceTokens !== next.surfaceTokens) {
         next = { ...next, pressureTokens, sampledSurfaceTokens: next.surfaceTokens }
@@ -207,8 +232,9 @@ export const contextPressureProjectionDefinition = {
   },
   wire: {
     viewSchema: pressureSchema,
-    view: ({ contextWindow, pressureTokens, surfaceTokens, sampledSurfaceTokens }) => ({
+    view: ({ contextWindow, observedTokens, pressureTokens, surfaceTokens, sampledSurfaceTokens }) => ({
       ...contextWindow === undefined ? {} : { contextWindow },
+      ...observedTokens === undefined ? {} : { observedTokens },
       ...pressureTokens === undefined ? {} : { pressureTokens },
       ...pressureTokens === undefined || sampledSurfaceTokens === undefined
         ? {}

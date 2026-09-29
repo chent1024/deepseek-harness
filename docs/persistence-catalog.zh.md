@@ -68,6 +68,7 @@
 | `event:team/message/queued` | event | `21fb6a90d5068f6a0003b7ab316ed2f56342477146a65c00db0f13c4d8df667d` | [`{ type: "team/message/queued" }`](#persistence-type-sha256-21fb6a90d5068f6a0003b7ab316ed2f56342477146a65c00db0f13c4d8df667d) |
 | `event:team/task` | event | `d595ec73b32b016a6055333c67a5d646032b22e672da1d4a09c5b1ae398a093a` | [`{ type: "team/task" }`](#persistence-type-sha256-d595ec73b32b016a6055333c67a5d646032b22e672da1d4a09c5b1ae398a093a) |
 | `event:todo/write` | event | `b978cff734e62143eb56c9125423ec275405eda969802d42aaf73ecb987d3b26` | [`{ type: "todo/write" }`](#persistence-type-sha256-b978cff734e62143eb56c9125423ec275405eda969802d42aaf73ecb987d3b26) |
+| `event:token-meter/context-observed` | event | `118db853acb559cbc3f01d6232a0e9a607d3cce318e180279311464c0b833fb6` | [`{ type: "token-meter/context-observed" }`](#persistence-type-sha256-118db853acb559cbc3f01d6232a0e9a607d3cce318e180279311464c0b833fb6) |
 | `event:tool-workflow/agent-end` | event | `babf9ee4d1af62bf6c3a8103737f7a5e4e78ce179be835ce05a38803e15884b7` | [`{ type: "tool-workflow/agent-end" }`](#persistence-type-sha256-babf9ee4d1af62bf6c3a8103737f7a5e4e78ce179be835ce05a38803e15884b7) |
 | `event:tool-workflow/agent-start` | event | `5f26a6c20b37632f8f57729d171c671def4683d994ac6257a8dffcd855101627` | [`{ type: "tool-workflow/agent-start" }`](#persistence-type-sha256-5f26a6c20b37632f8f57729d171c671def4683d994ac6257a8dffcd855101627) |
 | `event:tool-workflow/run-end` | event | `42e0916e0dda5f6d1e7bb05d8514717147c036a79c9f36085683469516c1fd3f` | [`{ type: "tool-workflow/run-end" }`](#persistence-type-sha256-42e0916e0dda5f6d1e7bb05d8514717147c036a79c9f36085683469516c1fd3f) |
@@ -1037,6 +1038,19 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 类型：[TodoItem](subsystems/todo.zh.md)
 
 来源：[`packages/todo/tool-todo/src/types.ts:31`](../packages/todo/tool-todo/src/types.ts)
+
+### `token-meter/*`
+
+<a id="token-metercontext-observed--log-only"></a>
+
+#### `token-meter/context-observed` — log-only
+
+```ts persistence-catalog
+/** Exact current occupancy reported by an external agent; informational, never billable usage. */
+'token-meter/context-observed': { usedTokens: number; contextWindow: number }
+```
+
+来源：[`packages/llm/token-meter/src/usage-projection.ts:100`](../packages/llm/token-meter/src/usage-projection.ts)
 
 ### `tool/*`
 
@@ -2628,6 +2642,14 @@ SHA-256: `78a9be340090b735a39980e7222ce730c972fbcf1de7c9e0aef2125884b7caee`
 SHA-256: `af0750d32d97d47b12b7361a587db41894b17e04c9a805fe212f0114aa2248c7`
 
 `"todo/write"`
+
+<a id="persistence-type-sha256-479b2a08befcb5ceaed6e8abf12aecd980b70090f49c6891e8d7d9caad6aee70"></a>
+
+### `"token-meter/context-observed"`
+
+SHA-256: `479b2a08befcb5ceaed6e8abf12aecd980b70090f49c6891e8d7d9caad6aee70`
+
+`"token-meter/context-observed"`
 
 <a id="persistence-type-sha256-a13d8f379222ece8a02a86efe4c8334af4f108ecb3034b38c0a42bb3046e6847"></a>
 
@@ -5800,6 +5822,19 @@ SHA-256: `3e4e7683b0192c9f0e6a75c59076108f017892cdb302a98032c2632fd79c356f`
 | `sourceCommandId` | 可选 | `string` |
 | `turn` | 必需 | [`OptionalSessionSeq`](#persistence-type-sha256-3bd652ebfa8726b3ce3937a4f1bd2759e02f86b3a08a20f9e41a8513656fbc5f) |
 
+<a id="persistence-type-sha256-68225202f7092531f9a6235420a2de88727a873abcb8d73ebaf3f78bdecb08da"></a>
+
+### `{ contextWindow, usedTokens }`
+
+SHA-256: `68225202f7092531f9a6235420a2de88727a873abcb8d73ebaf3f78bdecb08da`
+
+来源：[`packages/llm/token-meter/src/usage-projection.ts:100`](../packages/llm/token-meter/src/usage-projection.ts)
+
+| 属性 | 存在性 | 类型 |
+|---|---|---|
+| `contextWindow` | 必需 | `number` |
+| `usedTokens` | 必需 | `number` |
+
 <a id="persistence-type-sha256-8ad45ad053b4d89f8865c17cc9ff3b8748e86045f3f0fb816269a34af2619141"></a>
 
 ### `{ decision, durationMs, exitCode?, handlerId, … }`
@@ -8485,6 +8520,22 @@ SHA-256: `b978cff734e62143eb56c9125423ec275405eda969802d42aaf73ecb987d3b26`
 | `seq` | 必需 | `number` |
 | `time` | 必需 | `number` |
 | `type` | 必需 | `"todo/write"` |
+
+<a id="persistence-type-sha256-118db853acb559cbc3f01d6232a0e9a607d3cce318e180279311464c0b833fb6"></a>
+
+<a id="persistence-type-eventtoken-metercontext-observed"></a>
+
+### `{ type: "token-meter/context-observed" }`
+
+SHA-256: `118db853acb559cbc3f01d6232a0e9a607d3cce318e180279311464c0b833fb6`
+
+| 属性 | 存在性 | 类型 |
+|---|---|---|
+| `data` | 必需 | [`{ contextWindow, usedTokens }`](#persistence-type-sha256-68225202f7092531f9a6235420a2de88727a873abcb8d73ebaf3f78bdecb08da) |
+| `ignorable` | 可选 | `true` |
+| `seq` | 必需 | `number` |
+| `time` | 必需 | `number` |
+| `type` | 必需 | `"token-meter/context-observed"` |
 
 <a id="persistence-type-sha256-3860b4757d512a2869be833acb0faf834335b1b056bf3f83df5474dce95f8fa6"></a>
 

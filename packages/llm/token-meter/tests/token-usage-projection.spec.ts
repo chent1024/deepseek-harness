@@ -359,6 +359,21 @@ function appendAssistant(
 }
 
 describe('contextPressure session projection', () => {
+  it('projects externally observed occupancy without adding billable usage', async () => {
+    const { ctx, session } = await harness()
+    session.append('token-meter/context-observed', { usedTokens: 600, contextWindow: 1_000 })
+    expect(pressure(ctx, session)).toEqual({ observedTokens: 600, contextWindow: 1_000 })
+    expect(projected(ctx, session)).toEqual(ZERO)
+    session.append('token-meter/context-observed', { usedTokens: 300, contextWindow: 2_000 })
+    expect(pressure(ctx, session)).toEqual({ observedTokens: 300, contextWindow: 2_000 })
+  })
+
+  it('clears an external occupancy sample on a native route change', async () => {
+    const { ctx, session } = await harness()
+    session.append('token-meter/context-observed', { usedTokens: 600, contextWindow: 1_000 })
+    recordContext(session, 'other', 4_000)
+    expect(pressure(ctx, session)).toEqual({ contextWindow: 4_000 })
+  })
   it('serves no pressure or capacity for an empty log', async () => {
     const { ctx, session } = await harness()
     expect(pressure(ctx, session)).toEqual({})
@@ -446,7 +461,7 @@ describe('contextPressure session projection', () => {
     const checkpoint = JSON.parse(JSON.stringify(
       ctx.sessionProjections.checkpoint(session),
     )) as ReturnType<typeof ctx.sessionProjections.checkpoint>
-    expect(checkpoint.contextPressure?.ver).toBe(5)
+    expect(checkpoint.contextPressure?.ver).toBe(6)
 
     await meterFiber.dispose()
     expect(ctx.sessionProjections.snapshot(session).values).not.toHaveProperty('contextPressure')

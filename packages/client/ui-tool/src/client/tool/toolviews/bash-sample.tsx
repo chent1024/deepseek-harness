@@ -73,7 +73,7 @@ const StartedBashRow = memo(function StartedBashRow({ toolName, block, sessionId
       : null,
     [genericBody, model.bodyRaw, model.variant, open],
   )
-  const normalSummary = terminal?.description ?? model.summary
+  const normalSummary = model.inputUnavailable ? t('tool.inputUnavailable') : terminal?.description ?? model.summary
   const settlementLine = state === 'error'
     ? model.errorSummary ?? normalSummary
     : state === 'stopped' ? t('bash.stopped') : null

@@ -38,7 +38,7 @@ function StartedFileMutationRow({ toolName, block, cwd, home, openFile, inspect,
       toolName={toolName}
       icon={FILE_MUTATION_ICON}
       title={t(model.titleKey)}
-      summary={model.summary}
+      summary={model.inputUnavailable ? t('tool.inputUnavailable') : model.summary}
       output={model.output}
       errorSummary={model.errorSummary}
       diff={diff}

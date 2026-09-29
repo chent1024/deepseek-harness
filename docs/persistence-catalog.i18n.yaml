@@ -9,8 +9,8 @@
   en: e7c80d1de4d328b4
   zh: d9f368c27fd9f998
 /session-persistence-event-catalog/persistence-type-fingerprints:
-  en: 33dd28b1c768cd8b
-  zh: 7256442baf2faed1
+  en: 913ae8c745edda90
+  zh: 1e7ce2a1a0bed8e7
 /session-persistence-event-catalog/event-envelope:
   en: 7ebb1a2e0dd1f916
   zh: 8946f415dda5c1b8
@@ -233,6 +233,12 @@
 /session-persistence-event-catalog/events/todo/todo-write-log-only:
   en: 371e378bc5dc27c3
   zh: 4e12a6d2ec1bd139
+/session-persistence-event-catalog/events/token-meter:
+  en: fa6b6916499a03b1
+  zh: fa6b6916499a03b1
+/session-persistence-event-catalog/events/token-meter/token-meter-context-observed-log-only:
+  en: 1bd7bd87bd81b51e
+  zh: ad43f6adc1a61005
 /session-persistence-event-catalog/events/tool:
   en: 28a24430609494b2
   zh: 28a24430609494b2
@@ -792,8 +798,11 @@
   en: 2223b9a0ed3505e6
   zh: 2223b9a0ed3505e6
 /session-persistence-event-catalog/resolved-persistence-types/todo-write:
-  en: a337e8788d500ab7
-  zh: a337e8788d500ab7
+  en: 9d02a62512611053
+  zh: 9d02a62512611053
+/session-persistence-event-catalog/resolved-persistence-types/token-meter-context-observed:
+  en: 3a9e4d30f6ab7c2d
+  zh: 3a9e4d30f6ab7c2d
 /session-persistence-event-catalog/resolved-persistence-types/tool:
   en: 177128f47ebb1ed9
   zh: 177128f47ebb1ed9
@@ -1389,8 +1398,11 @@
   en: 45f1d815198508e1
   zh: 5c2818b0e38e1356
 /session-persistence-event-catalog/resolved-persistence-types/compactionid-sourcecommandid-turn:
-  en: 4ba70efccc268763
-  zh: 06ba9b3e824c80a7
+  en: ee058a7795e28075
+  zh: 33882fb6efe4a0bc
+/session-persistence-event-catalog/resolved-persistence-types/contextwindow-usedtokens:
+  en: 9f2be00db6ce1ee0
+  zh: 844f11a8d9636f14
 /session-persistence-event-catalog/resolved-persistence-types/decision-durationms-exitcode-handlerid:
   en: ed8ca43bb7622393
   zh: 697e1ccbe9439aa9
@@ -2004,8 +2016,11 @@
   en: 47ae2d57be710450
   zh: b072753349ac505e
 /session-persistence-event-catalog/resolved-persistence-types/type-todo-write:
-  en: 2fa7ba77598a95b4
-  zh: 50972b51d77e9155
+  en: 3f4de2861d5e8dec
+  zh: d678bbfdfeb5b227
+/session-persistence-event-catalog/resolved-persistence-types/type-token-meter-context-observed:
+  en: b7725997afc8d686
+  zh: cb04c811d4deaf0e
 /session-persistence-event-catalog/resolved-persistence-types/type-tool-call-chunks:
   en: 32f732b97739e4d2
   zh: f288e48e356969c0

@@ -34,6 +34,35 @@ function preparation(name: string): Props {
 }
 
 describe('argument-free tool preparation', () => {
+  it('specialized card models parse the final ACP input after a revision', () => {
+    const block: ToolResultNode = { kind: 'tool-result', seq: 3, time: 3,
+      callId: 'acp-projected:attempt:read', callTime: 2,
+      call: { name: 'read', argsRaw: '{"file_path":"/tmp/first.txt","offset":1}' },
+      meta: { acpFinalInput: { file_path: '/tmp/final.txt', offset: 7 } },
+      content: [], isError: false, subCalls: [] }
+    expect(parsedToolCall(block)?.args).toEqual({ file_path: '/tmp/final.txt', offset: 7 })
+  })
+
+  it.each([
+    ['read', ReadRow], ['write', FileMutationRow], ['edit', FileMutationRow],
+    ['grep', SearchRow], ['glob', SearchRow], ['web_search', WebRow], ['web_fetch', WebRow],
+  ] as const)('%s identifies missing ACP input in its keyed row', (name, Component) => {
+    const props = preparation(name)
+    const block: StartedToolCall = { phase: 'start', callId: `acp-projected:attempt:${name}`,
+      name, argsRaw: '{}', turn: 1, step: 1, time: 2, subCalls: [] }
+    const view = render(<Component {...props} phase="start" block={block} />)
+    expect(view.getByText('Input unavailable')).toBeTruthy()
+  })
+
+  it('bash identifies missing ACP input in its keyed row', () => {
+    const props = preparation('bash')
+    const block: StartedToolCall = { phase: 'start', callId: 'acp-projected:attempt:bash',
+      name: 'bash', argsRaw: '{}', turn: 1, step: 1, time: 2, subCalls: [] }
+    const useSessions = vi.fn(() => ({ byId: {} })) as unknown as Parameters<typeof BashRow>[0]['useSessions']
+    const view = render(<BashRow {...props} phase="start" block={block} useSessions={useSessions} />)
+    expect(view.getByText('Input unavailable')).toBeTruthy()
+  })
+
   it.each([
     ['read', ReadRow], ['read_image', ReadImageRow], ['write', FileMutationRow], ['edit', FileMutationRow],
     ['grep', SearchRow], ['glob', SearchRow], ['web_search', WebRow], ['web_fetch', WebRow],

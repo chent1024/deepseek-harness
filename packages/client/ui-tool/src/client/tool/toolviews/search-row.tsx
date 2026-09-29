@@ -28,7 +28,7 @@ export function SearchRow({ toolName, block, inspect, useDisclosure, t }: Search
       title={t(toolName === 'grep'
         ? SEARCH_TITLE_KEYS.grep
         : toolName === 'glob' ? SEARCH_TITLE_KEYS.glob : model.titleKey)}
-      summary={model.summary}
+      summary={model.inputUnavailable ? t('tool.inputUnavailable') : model.summary}
       // ToolRow ignores output when a structured card is present; otherwise it
       // preserves the generic fallback for errors and legacy results.
       output={model.output}

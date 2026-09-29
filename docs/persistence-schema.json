@@ -16834,6 +16834,77 @@
       }
     },
     {
+      "key": "event:token-meter/context-observed",
+      "kind": "event",
+      "event": "token-meter/context-observed",
+      "surface": false,
+      "digest": "118db853acb559cbc3f01d6232a0e9a607d3cce318e180279311464c0b833fb6",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 3,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 4,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "contextWindow",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "usedTokens",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "token-meter/context-observed"
+          }
+        ]
+      }
+    },
+    {
       "key": "event:tool-workflow/agent-end",
       "kind": "event",
       "event": "tool-workflow/agent-end",
@@ -22030,6 +22101,11 @@
       "sources": []
     },
     {
+      "digest": "118db853acb559cbc3f01d6232a0e9a607d3cce318e180279311464c0b833fb6",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "119abe2b9c0b2f46ecb31d82b9acba4d4b30e049f655e2475e8b4ae12d5a9e25",
       "names": [],
       "sources": [
@@ -22820,6 +22896,11 @@
       ]
     },
     {
+      "digest": "479b2a08befcb5ceaed6e8abf12aecd980b70090f49c6891e8d7d9caad6aee70",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "47e5d84f1a93450a78c7f3954b43990d0f629af7c034a56313e5deb63e772c1b",
       "names": [],
       "sources": []
@@ -23348,6 +23429,13 @@
       "digest": "68141cbe3994a5ffcd064c07c75996538437fd9dbf77ce8a2927e89ec577fabe",
       "names": [],
       "sources": []
+    },
+    {
+      "digest": "68225202f7092531f9a6235420a2de88727a873abcb8d73ebaf3f78bdecb08da",
+      "names": [],
+      "sources": [
+        "packages/llm/token-meter/src/usage-projection.ts:100"
+      ]
     },
     {
       "digest": "688e853dc149f0d30b31765c12ec7e3be74169bdf1a4c6463a10b945d50cc1b8",
