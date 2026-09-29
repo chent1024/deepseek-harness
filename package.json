@@ -32,6 +32,8 @@
     "package:desktop": "pnpm --filter @deepseek-ai/dsh-desktop run package",
     "package:desktop:dir": "pnpm --filter @deepseek-ai/dsh-desktop run package:dir",
     "package:desktop:mac:arm64": "pnpm --filter @deepseek-ai/dsh-desktop run package:mac:arm64",
+    "package:desktop:mac:arm64:local": "pnpm --filter @deepseek-ai/dsh-desktop run package:mac:arm64:local",
+    "install:desktop:mac:arm64:local": "pnpm --filter @deepseek-ai/dsh-desktop run install:mac:arm64:local",
     "package:desktop:mac:arm64:dir": "pnpm --filter @deepseek-ai/dsh-desktop run package:mac:arm64:dir",
     "package:desktop:mac:x64": "pnpm --filter @deepseek-ai/dsh-desktop run package:mac:x64",
     "package:desktop:mac:x64:dir": "pnpm --filter @deepseek-ai/dsh-desktop run package:mac:x64:dir",

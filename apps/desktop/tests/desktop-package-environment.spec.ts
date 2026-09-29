@@ -2,7 +2,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { loadDesktopPackageEnvironment, validateDesktopPackageEnvironment } from '../scripts/desktop-package-environment.mjs'
+import { loadDesktopPackageEnvironment, localMacOSPackageEnvironment, validateDesktopPackageEnvironment } from '../scripts/desktop-package-environment.mjs'
 import { resolveWindowsPackageSettings } from '../scripts/windows-package-settings.mjs'
 
 const WINDOWS = { platform: 'win32', arch: 'x64' } as const
@@ -23,6 +23,21 @@ async function withDirectory(action: (directory: string) => Promise<void>): Prom
 }
 
 describe('Desktop local packaging configuration', () => {
+  it('isolates a local macOS build from release credentials and update destinations', () => {
+    const environment = localMacOSPackageEnvironment({
+      PATH: '/usr/bin', DSH_DESKTOP_APP_ID: 'com.release.desktop',
+      APPLE_API_KEY: '/private/key.p8', CSC_LINK: '/private/signing.p12',
+      DOWNLOAD_TEST_ORIGIN: 'https://updates.example.com',
+      DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: 'https://policy.example.com',
+    })
+    expect(environment).toEqual({
+      PATH: '/usr/bin', DSH_DESKTOP_APP_ID: 'com.deepseek.harness.local', DSH_DESKTOP_LOCAL_UNSIGNED: '1',
+    })
+    expect(() => validateDesktopPackageEnvironment(environment, MACOS, { localUnsigned: true })).not.toThrow()
+    expect(() => validateDesktopPackageEnvironment(environment, WINDOWS, { localUnsigned: true })).toThrow(/require macOS/u)
+    expect(() => validateDesktopPackageEnvironment(environment, MACOS)).toThrow(/MANDATORY_UPDATE_TEST_ORIGIN/u)
+  })
+
   it('takes cache concurrency from the Windows file and defaults to four without ambient overrides', async () => {
     await withDirectory(async (directory) => {
       const parent = { DSH_DESKTOP_WINDOWS_SIGNATURE_CACHE_CONCURRENCY: '8' }

@@ -13,8 +13,11 @@ export function loadDesktopPackageEnvironment(
   appRoot?: string,
 ): NodeJS.ProcessEnv
 
+/** Build a local macOS application without release credentials or update destinations. */
+export function localMacOSPackageEnvironment(environment?: NodeJS.ProcessEnv): NodeJS.ProcessEnv
+
 /**
- * Validate release configuration before preparation without invoking a token or Apple's services.
+ * Validate release or explicit local packaging configuration before preparation.
  * @param environment File-owned release settings.
  * @param target Selected release target.
  * @param options Explicit packaging mode.
@@ -23,5 +26,5 @@ export function loadDesktopPackageEnvironment(
 export function validateDesktopPackageEnvironment(
   environment: NodeJS.ProcessEnv,
   target: { platform: 'win32' | 'darwin', arch: string },
-  options?: { unsigned?: boolean, prepareOnly?: boolean },
+  options?: { unsigned?: boolean, prepareOnly?: boolean, localUnsigned?: boolean },
 ): void
