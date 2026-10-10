@@ -23,19 +23,23 @@ async function withDirectory(action: (directory: string) => Promise<void>): Prom
 }
 
 describe('Desktop local packaging configuration', () => {
-  it('isolates a local macOS build from release credentials and update destinations', () => {
-    const environment = localMacOSPackageEnvironment({
-      PATH: '/usr/bin', DSH_DESKTOP_APP_ID: 'com.release.desktop',
-      APPLE_API_KEY: '/private/key.p8', CSC_LINK: '/private/signing.p12',
-      DOWNLOAD_TEST_ORIGIN: 'https://updates.example.com',
-      DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: 'https://policy.example.com',
+  it('selects macOS local defaults while excluding inherited release settings and retaining build networking', () => {
+    const parent = {
+      PATH: 'build-tools', HTTPS_PROXY: 'http://proxy.example:8080', DSH_DESKTOP_NPM_REGISTRY: 'https://registry.npmmirror.com',
+      DSH_DESKTOP_APP_ID: 'com.example.release', DSH_DESKTOP_UNSIGNED: '0',
+      DSH_DESKTOP_AUTO_UPDATE_ENV: 'production', DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: 'invalid-json',
+      DSH_DESKTOP_MANDATORY_UPDATE_PROD_ORIGIN: 'https://policy.example.com',
+      DSH_DESKTOP_MACOS_SIGNING_IDENTITY: 'Release identity', CSC_LINK: 'missing.p12',
+      APPLE_API_KEY: 'missing.p8', DOWNLOAD_PROD_COS_SECRET_KEY: 'unused-secret',
+    }
+    const local = localMacOSPackageEnvironment(parent)
+    expect(local).toEqual({
+      PATH: parent.PATH, HTTPS_PROXY: parent.HTTPS_PROXY, DSH_DESKTOP_NPM_REGISTRY: parent.DSH_DESKTOP_NPM_REGISTRY,
+      DSH_DESKTOP_APP_ID: 'com.deepseek.harness', DSH_DESKTOP_UNSIGNED: '1',
     })
-    expect(environment).toEqual({
-      PATH: '/usr/bin', DSH_DESKTOP_APP_ID: 'com.deepseek.harness.local', DSH_DESKTOP_LOCAL_UNSIGNED: '1',
-    })
-    expect(() => validateDesktopPackageEnvironment(environment, MACOS, { localUnsigned: true })).not.toThrow()
-    expect(() => validateDesktopPackageEnvironment(environment, WINDOWS, { localUnsigned: true })).toThrow(/require macOS/u)
-    expect(() => validateDesktopPackageEnvironment(environment, MACOS)).toThrow(/MANDATORY_UPDATE_TEST_ORIGIN/u)
+    expect(() => { validateDesktopPackageEnvironment(local, MACOS, { unsigned: true }) }).not.toThrow()
+    expect(parent.DSH_DESKTOP_UNSIGNED).toBe('0')
+    expect(parent.DSH_DESKTOP_APP_ID).toBe('com.example.release')
   })
 
   it('takes cache concurrency from the Windows file and defaults to four without ambient overrides', async () => {
@@ -152,6 +156,14 @@ describe('Desktop local packaging configuration', () => {
     expect(() => {
       validateDesktopPackageEnvironment({ ...POLICY, DSH_DESKTOP_APP_ID: RELEASE.DSH_DESKTOP_APP_ID }, WINDOWS, { prepareOnly: true })
     }).not.toThrow()
+  })
+
+  it('accepts unsigned macOS configuration without Apple or update policy settings while keeping release validation', () => {
+    const local = localMacOSPackageEnvironment({})
+    expect(() => { validateDesktopPackageEnvironment(local, MACOS, { unsigned: true }) }).not.toThrow()
+    expect(() => { validateDesktopPackageEnvironment(local, MACOS) })
+      .toThrow('DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN')
+    expect(() => { validateDesktopPackageEnvironment(RELEASE, MACOS) }).toThrow('DSH_DESKTOP_MACOS_SIGNING_IDENTITY')
   })
 
   it('accepts one local npm registry mirror and rejects other registry forms', () => {
