@@ -71,7 +71,7 @@ export const BashRow = memo(function BashRow({ toolName, block, sessionId, useSe
       : null,
     [genericBody, model.bodyRaw, model.variant, open],
   )
-  const normalSummary = terminal?.description ?? model.summary
+  const normalSummary = model.inputUnavailable ? t('tool.inputUnavailable') : terminal?.description ?? model.summary
   const exitLabel = terminalExitLabel(terminalModel, t)
   const settlementLine = exitLabel !== null ? null : state === 'error'
     ? model.errorSummary ?? normalSummary

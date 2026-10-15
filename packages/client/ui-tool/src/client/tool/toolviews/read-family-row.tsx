@@ -47,7 +47,7 @@ export function readFamilyRow(
       toolName={toolName}
       icon={<IconBrowseOutlineRegular size={14} />}
       title={t(model.titleKey)}
-      summary={model.summary}
+      summary={model.inputUnavailable ? t('tool.inputUnavailable') : model.summary}
       bodyRaw={null}
       output={model.output}
       errorSummary={model.errorSummary}

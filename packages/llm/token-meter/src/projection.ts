@@ -18,7 +18,8 @@ export interface TokenUsageProjection {
 }
 
 /**
- * Approximate context occupancy for a status display.
+ * Context occupancy for a status display. External agents may report their
+ * current occupancy directly; local request pressure remains approximate.
  *
  * The fields, when present, are deliberately NOT one atomic request
  * observation: each is a last-wins record of a different moment. Switching
@@ -28,6 +29,8 @@ export interface TokenUsageProjection {
  * the token-meter README for the full rationale.
  */
 export interface ContextPressureProjection {
+  /** Exact current context occupancy reported by an external agent, when available. */
+  observedTokens?: number
   /**
    * Provider-reported prompt size of the most recent request: uncached input
    * plus cache reads and writes. Response output is excluded, so this does not

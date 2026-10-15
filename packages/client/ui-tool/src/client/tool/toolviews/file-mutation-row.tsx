@@ -43,8 +43,8 @@ export function FileMutationRow({ toolName, block, cwd, home, openFile, inspect,
       toolName={toolName}
       icon={FILE_MUTATION_ICON}
       title={t(model.titleKey)}
-      summary={model.summary}
-      summarySuffix={size !== null && model.summary !== '' ? size : undefined}
+      summary={model.inputUnavailable ? t('tool.inputUnavailable') : model.summary}
+      summarySuffix={size !== null && model.summary !== '' && !model.inputUnavailable ? size : undefined}
       output={model.output}
       errorSummary={model.errorSummary}
       diff={diff}

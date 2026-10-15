@@ -1,0 +1,28 @@
+# Bilingual-pair consistency record for 2026-10-16-retain-fork-context-observation.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/persistence-changes/2026-10-16-retain-fork-context-observation.md
+/:
+  en: 3d5a424ae7d7e46b
+  zh: c22a8e4a62d8cc1a
+/2026-10-16-retain-fork-context-observation:
+  en: 0dad3952831e4bb2
+  zh: 59fc7241e32739b1
+/2026-10-16-retain-fork-context-observation/summary:
+  en: 7d99d9249f2350a3
+  zh: 18dcc40004857fbb
+/2026-10-16-retain-fork-context-observation/table-of-contents:
+  en: 6cf314a069ceb451
+  zh: 9adff678e9ecab3b
+/2026-10-16-retain-fork-context-observation/declaration:
+  en: 6907136f28e48c90
+  zh: 02f8298485f3d8e7
+/2026-10-16-retain-fork-context-observation/compatibility:
+  en: 7528c8f4068725d2
+  zh: c5de483a9937771c
+/2026-10-16-retain-fork-context-observation/verification:
+  en: 5826b9377d266a71
+  zh: c4b71e18c4d25cb8
+/2026-10-16-retain-fork-context-observation/dev-note:
+  en: b75c8458928b72b9
+  zh: 003ba4e17b4b5269

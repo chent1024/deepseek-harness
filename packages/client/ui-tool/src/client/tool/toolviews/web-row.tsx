@@ -29,7 +29,7 @@ export function WebRow({ toolName, block, inspect, useDisclosure, t }: WebRowPro
       title={t(toolName === 'web_search'
         ? WEB_TITLE_KEYS.web_search
         : toolName === 'web_fetch' ? WEB_TITLE_KEYS.web_fetch : model.titleKey)}
-      summary={model.summary}
+      summary={model.inputUnavailable ? t('tool.inputUnavailable') : model.summary}
       output={model.output}
       errorSummary={model.errorSummary}
       web={web}

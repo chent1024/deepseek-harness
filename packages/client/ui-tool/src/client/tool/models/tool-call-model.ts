@@ -8,6 +8,7 @@
 import type { ToolArgs, ToolCallBlock, ToolResultNode } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { LocaleKeysOf } from '@deepseek-ai/dsh-client-ui-slots'
 import { abbreviateHomePath, isAbsoluteWorkspacePath, relativizeToCwd } from '@deepseek-ai/dsh-util-workspace-path'
+import { PartialArguments } from '@deepseek-ai/dsh-util-values'
 import { recordedAbsolutePath } from './recorded-path.ts'
 
 export type { ToolCallBlock } from '@deepseek-ai/dsh-client-ui-chat/client'
@@ -145,6 +146,8 @@ export interface ToolRowModel {
   titleKey: ToolTitleKey
   /** Generic rows retain the wire tool name; available arguments append their summary. */
   summary: string
+  /** ACP tool identity is known, but the agent did not provide call arguments. */
+  inputUnavailable: boolean
   /**
    * Operation-time absolute result path for file rows. Old results without
    * location metadata retain their argument fallback; running relative paths
@@ -303,8 +306,16 @@ export function toolRowModel(toolName: string, block: ToolCallBlock, cwd?: strin
   const variant = classifyTool(toolName)
   const titleKey = toolTitleKey(toolName)
   const done = 'kind' in block
-  const argsRaw = done ? block.call?.argsRaw ?? '' : block.phase === 'start' ? block.argsRaw : null
-  const primary = argumentSummary(variant, block.args, cwd, home)
+  const recordedArgs = done ? block.call?.argsRaw ?? '' : block.phase === 'start' ? block.argsRaw : null
+  const argsRaw = done && block.callId.startsWith('acp-projected:') && typeof block.meta === 'object'
+    && block.meta !== null && 'acpFinalInput' in block.meta
+    ? JSON.stringify(block.meta.acpFinalInput) : recordedArgs
+  const acpInputUnavailable = block.callId.startsWith('acp-projected:') && argsRaw === '{}'
+  const acpTitle = done && acpInputUnavailable && typeof block.meta === 'object' && block.meta !== null
+    && 'acpTitle' in block.meta && typeof block.meta.acpTitle === 'string' && block.meta.acpTitle.trim() !== ''
+    ? block.meta.acpTitle : undefined
+  const args = argsRaw !== null && argsRaw !== recordedArgs ? PartialArguments.fromText(argsRaw) : block.args
+  const primary = argumentSummary(variant, args, cwd, home)
   const argumentPath = primary.filePath ?? (argsRaw === null ? undefined : deriveFilePath(variant, argsRaw))
   const recordedPath = done ? recordedAbsolutePath(block.meta, 'path') : undefined
   const canUseArgumentPath = argumentPath !== undefined
@@ -314,21 +325,21 @@ export function toolRowModel(toolName: string, block: ToolCallBlock, cwd?: strin
   const state: ToolRowState = !done ? block.phase === 'preparing' ? 'preparing' : 'running'
     : block.error?.code === 'interrupted' ? 'stopped'
       : block.isError ? 'error' : 'ok'
-  // The argument view serves every stage; the raw text is the fallback when it carries nothing useful.
-  const base = primary.summary !== '' || argsRaw === null ? primary.summary
+  const base = acpTitle ?? (acpInputUnavailable ? '' : primary.summary !== '' || argsRaw === null ? primary.summary
     : argsRaw === '' ? block.callId
-      : abbreviateHomePath(relativizeToCwd(deriveSummary(variant, argsRaw), cwd), home)
+      : abbreviateHomePath(relativizeToCwd(deriveSummary(variant, argsRaw), cwd), home))
   const summary = [titleKey === 'tool.title.generic' ? toolName : '', base].filter(Boolean).join(' · ')
   // The empty string is "no text" for both derived result fields: a settled
   // call with blank content has nothing to expand, and a blank first line
   // would erase the collapsed error row's summary slot.
   const output = done ? (resultText(block) || null) : null
   const errorSummary = state === 'error' && output !== null ? firstLine(output) : null
-  const bodyRaw = argsRaw === '' ? null : argsRaw
+  const bodyRaw = argsRaw === '' || acpInputUnavailable ? null : argsRaw
   return {
     variant,
     titleKey,
     summary,
+    inputUnavailable: acpInputUnavailable && acpTitle === undefined,
     filePath,
     bodyRaw,
     output,

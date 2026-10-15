@@ -99,6 +99,13 @@ function appliedDiffs(meta: unknown): DiffHunk[] | 'empty' | null {
  */
 export function diffCardModel(block: ToolCallBlock): DiffCardModel | null {
   if (block.parentCallId !== undefined) return null
+  if ('kind' in block && !block.isError && (block.call?.name === 'edit' || block.call?.name === 'write')) {
+    const parsed = parsedToolCall(block)
+    if (parsed !== null && Object.keys(parsed.args).length === 0) {
+      const applied = appliedDiffs(block.meta)
+      if (applied !== null && applied !== 'empty') return { card: { diffs: applied } }
+    }
+  }
   const intended = intendedDiff(block)
   if (intended === null) return null
   if (!('kind' in block)) return { card: { diffs: [intended.diff] } }
