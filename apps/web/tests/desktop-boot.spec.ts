@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
 const boot = vi.hoisted(() => ({
   run: vi.fn(),
@@ -9,6 +9,10 @@ vi.mock('@deepseek-ai/dsh-client-web', () => ({
   AppWebEntry: class { run = boot.run },
   applyIndexInjections: boot.applyIndexInjections,
 }))
+
+beforeEach(() => {
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => { callback(0); return 0 })
+})
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -22,7 +26,7 @@ it('forwards client initialization failures to native recovery', async () => {
   const gate = Promise.withResolvers<undefined>()
   const failed = vi.fn(async () => {})
   vi.stubGlobal('__DSH_BOOT_READY__', gate)
-  vi.stubGlobal('dshDesktopBoot', { ready: async () => ({ injections: [], streamBaseUrl: 'http://127.0.0.1:3080' }), failed })
+  vi.stubGlobal('dshDesktopBoot', { mounted: vi.fn(async () => {}), ready: async () => ({ injections: [], streamBaseUrl: 'http://127.0.0.1:3080' }), failed })
   vi.stubGlobal('__DSH_TRANSPORT__', undefined)
   await import('../src/main.ts')
   await gate.promise
@@ -38,7 +42,7 @@ it('rejects the shared boot wait when the Desktop Host cannot start', async () =
   const failure = new Error('Host failed')
   const rejected = expect(gate.promise).rejects.toBe(failure)
   vi.stubGlobal('__DSH_BOOT_READY__', gate)
-  vi.stubGlobal('dshDesktopBoot', { ready: async () => { throw failure }, failed: vi.fn() })
+  vi.stubGlobal('dshDesktopBoot', { mounted: vi.fn(async () => {}), ready: async () => { throw failure }, failed: vi.fn() })
   await import('../src/main.ts')
   await rejected
   expect(boot.applyIndexInjections).not.toHaveBeenCalled()
@@ -55,10 +59,45 @@ it('leaves browser failure presentation with the Web boot kernel', async () => {
 it.each(['root', 'readiness'])('reports missing %s before client plugin startup', async (missing) => {
   if (missing !== 'root') document.body.innerHTML = '<div id="root"></div>'
   const failed = vi.fn(async () => {})
-  vi.stubGlobal('dshDesktopBoot', { ready: vi.fn(), failed })
+  vi.stubGlobal('dshDesktopBoot', { mounted: vi.fn(async () => {}), ready: vi.fn(), failed })
   vi.stubGlobal('__DSH_BOOT_READY__', undefined)
   await import('../src/main.ts')
   expect(failed).toHaveBeenCalledWith(missing === 'root'
     ? 'web app: missing #root' : 'desktop web: boot readiness is missing')
   expect(boot.run).not.toHaveBeenCalled()
+})
+
+
+it('acknowledges mounted workspace only after the client completes and two frames pass', async () => {
+  document.body.innerHTML = '<div id="root"></div>'
+  const gate = Promise.withResolvers<undefined>()
+  const mounting = Promise.withResolvers<undefined>()
+  const mounted = vi.fn(async () => {})
+  const frames: FrameRequestCallback[] = []
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => { frames.push(callback); return frames.length })
+  boot.run.mockReturnValueOnce(mounting.promise)
+  vi.stubGlobal('__DSH_BOOT_READY__', gate)
+  vi.stubGlobal('dshDesktopBoot', { mounted, failed: vi.fn(async () => {}), ready: async () => ({ injections: [], streamBaseUrl: 'http://127.0.0.1:3080' }) })
+  await import('../src/main.ts')
+  await gate.promise
+  expect(mounted).not.toHaveBeenCalled()
+  mounting.resolve(undefined)
+  await vi.waitFor(() => { expect(frames).toHaveLength(1) })
+  frames.shift()!(0)
+  expect(mounted).not.toHaveBeenCalled()
+  frames.shift()!(0)
+  await vi.waitFor(() => { expect(mounted).toHaveBeenCalledOnce() })
+})
+
+it('does not acknowledge successful mount when the client reports failure', async () => {
+  document.body.innerHTML = '<div id="root"></div>'
+  const gate = Promise.withResolvers<undefined>()
+  const mounted = vi.fn(async () => {})
+  boot.run.mockImplementationOnce((report: (reason: unknown) => void) => { report(new Error('activation failed')); return Promise.resolve() })
+  vi.stubGlobal('__DSH_BOOT_READY__', gate)
+  vi.stubGlobal('dshDesktopBoot', { mounted, failed: vi.fn(async () => {}), ready: async () => ({ injections: [], streamBaseUrl: 'http://127.0.0.1:3080' }) })
+  await import('../src/main.ts')
+  await gate.promise
+  await Promise.resolve()
+  expect(mounted).not.toHaveBeenCalled()
 })

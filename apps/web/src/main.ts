@@ -4,12 +4,15 @@ import { AppWebEntry, applyIndexInjections } from '@deepseek-ai/dsh-client-web'
 
 interface DesktopBootGlobal {
   dshDesktopBoot?: {
+    mounted(): Promise<void>
     failed(message: string): Promise<void>
     ready(): Promise<{ injections: Parameters<typeof applyIndexInjections>[0]; streamBaseUrl: string }>
   }
 }
 const desktop = (globalThis as DesktopBootGlobal).dshDesktopBoot
+let initializationFailed = false
 const reportFailure = (reason: unknown): void => {
+  initializationFailed = true
   if (desktop === undefined) throw reason
   void desktop.failed(reason instanceof Error ? reason.message : String(reason)).catch(console.error)
 }
@@ -34,7 +37,11 @@ try {
       gate.resolve()
     }).catch((error: unknown) => { gate.reject(error) })
   }
-  void entry.run(desktop === undefined ? undefined : reportFailure)
+  void Promise.resolve(entry.run(desktop === undefined ? undefined : reportFailure)).then(async () => {
+    if (desktop === undefined || initializationFailed) return
+    await new Promise<void>((resolve) => { requestAnimationFrame(() => { requestAnimationFrame(() => { resolve() }) }) })
+    await desktop.mounted()
+  }).catch(reportFailure)
 } catch (reason) {
   reportFailure(reason)
 }

@@ -7,6 +7,7 @@
   "type": "module",
   "main": "lib/main.js",
   "scripts": {
+    "test:startup:local": "electron tests/fixtures/startup-animation.mjs",
     "test:installer": "node scripts/test-windows-installer.mjs",
     "build": "tsc -b && pnpm run bundle",
     "bundle": "tsdown --config-loader native",

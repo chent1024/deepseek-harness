@@ -1,0 +1,34 @@
+[
+  {
+    "clip": "brand",
+    "played": true,
+    "minimum": true,
+    "uncropped": true,
+    "hiddenUntilCompleted": true,
+    "closed": true,
+    "replayed": false
+  },
+  {
+    "clip": "cyberpunk",
+    "played": true,
+    "minimum": true,
+    "uncropped": true,
+    "hiddenUntilCompleted": true,
+    "closed": true,
+    "replayed": false
+  },
+  {
+    "clip": "awakening",
+    "played": true,
+    "minimum": true,
+    "uncropped": true,
+    "hiddenUntilCompleted": true,
+    "closed": true,
+    "replayed": false
+  },
+  {
+    "clip": "error",
+    "closed": true,
+    "continued": true
+  }
+]

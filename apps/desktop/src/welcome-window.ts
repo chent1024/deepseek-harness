@@ -54,9 +54,11 @@ let disposeActiveHandlers: (() => void) | undefined
  * Replaces IPC ownership immediately; the caller closes the previous native window.
  * @param locale - shell-owned localized copy.
  * @param operations - credential write and this-launch-only skip actions.
- * @returns the visible window; a failed load destroys it before rejecting.
+ * @param present - Optional Desktop startup handoff; otherwise the loaded window is shown immediately.
+ * @returns the loaded window; a failed load destroys it before rejecting.
  */
-export async function openWelcomeWindow(locale: DesktopLocale, operations: WelcomeOperations): Promise<BrowserWindow> {
+export async function openWelcomeWindow(locale: DesktopLocale, operations: WelcomeOperations,
+  present?: (window: BrowserWindow) => void): Promise<BrowserWindow> {
   const options = welcomeWindowOptions(process.platform, locale)
   const window = new BrowserWindow(options)
   disposeActiveHandlers?.()
@@ -125,7 +127,8 @@ export async function openWelcomeWindow(locale: DesktopLocale, operations: Welco
   }
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Another window can replace ownership during loadFile.
   if (active && !window.isDestroyed()) {
-    window.show()
+    if (present === undefined) window.show()
+    else present(window)
     void operations.analytics?.('auth_page_view', {})
   }
   return window

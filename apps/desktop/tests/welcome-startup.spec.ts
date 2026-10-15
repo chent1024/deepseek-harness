@@ -1,3 +1,15 @@
+vi.mock('../src/startup-animation.ts', () => ({ DesktopStartupAnimation: class {
+  start(): void {}
+  focus(): boolean { return false }
+  finish(): void {}
+  workspaceMounted(): void {}
+  welcomeReady(): void {}
+  response(): Promise<Response> { return Promise.resolve(new Response(null, { status: 404 })) }
+  reveal(window: { show(): void; showInactive(): void }, activate: boolean): void {
+    if (activate) window.show()
+    else window.showInactive()
+  }
+} }))
 vi.mock('../src/web-document.ts', () => ({ authenticateWebHost: async () => 'test-cookie', serveWebDocument: vi.fn(), forwardWebRequest: vi.fn() }))
 /** Welcome startup uses the Host before transitioning to the workspace. */
 

@@ -4,6 +4,7 @@ import { WINDOWS_TITLEBAR_HEIGHT } from './windows-layout.ts'
 
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { DesktopStartupAnimation } from './startup-animation.ts'
 import { fileURLToPath } from 'node:url'
 import {
   app,
@@ -62,6 +63,7 @@ import { DesktopQuitConfirmation } from './quit-confirmation.ts'
 import { DesktopTray } from './tray.ts'
 import { DesktopBackgroundNotice } from './background-notice.ts'
 
+let launchAnimation: DesktopStartupAnimation | undefined
 let focusPrimaryWindow = (): void => {}
 let stopForRecovery = async (): Promise<void> => {}
 let shuttingDown = false
@@ -122,6 +124,7 @@ function persistCrashReport(error: unknown, source: CrashReportSource): Promise<
 }
 
 function reportFatal(error: unknown, source: CrashReportSource): void {
+  launchAnimation?.finish()
   console.error(error)
   if (shuttingDown) {
     // No dialog during shutdown, but the report still records what failed on the way out.
@@ -315,6 +318,12 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
 }
 
 async function main(): Promise<void> {
+  const startupResources = app.isPackaged ? process.resourcesPath : join(app.getAppPath(), 'resources')
+  launchAnimation = new DesktopStartupAnimation([
+    join(startupResources, 'startup-animation-brand.mp4'),
+    join(startupResources, 'startup-animation-cyberpunk.mp4'),
+    join(startupResources, 'startup-animation-awakening.mp4'),
+  ], join(app.getAppPath(), 'lib', 'preload-startup.cjs'))
   const desktopSettings = readDesktopSettings(app.getPath('userData'))
   void pruneCrashReports(app.getPath('logs'))
   const journalDirectory = process.env.DSH_DESKTOP_UPDATE_JOURNAL_DIR
@@ -666,6 +675,7 @@ async function main(): Promise<void> {
 
   protocol.handle(SCHEME, (request) => {
     const url = new URL(request.url)
+    if (url.hostname === 'startup' && launchAnimation !== undefined) return launchAnimation.response(request)
     // Shell-owned documents live in the application bundle and never pass through the Host.
     if (url.hostname === 'shell') return serveWebDocument(request, join(app.getAppPath(), 'renderer'))
     if (url.hostname === 'app') {
@@ -681,6 +691,8 @@ async function main(): Promise<void> {
     return Promise.resolve(new Response(null, { status: 404 }))
   })
 
+  launchAnimation.start()
+
   installDesktopDirectoryPicker(() => mainWindow)
   installMicrophonePermissions(session.defaultSession, () => mainWindow?.webContents)
   const shortcuts = installDesktopShortcuts(() => mainWindow, app.getPath('userData'),
@@ -692,6 +704,11 @@ async function main(): Promise<void> {
     await startup
     if (backend.host === undefined || hostUrl === undefined) throw new Error('Desktop Host is unavailable')
     return { injections, streamBaseUrl: new URL(hostUrl).origin }
+  })
+
+  ipcMain.handle(DESKTOP_IPC.workspaceMounted, (event) => {
+    assertProductSender(event)
+    launchAnimation?.workspaceMounted()
   })
 
   ipcMain.handle(DESKTOP_IPC.bootFailed, (event, message: unknown) => {
@@ -1122,7 +1139,8 @@ async function main(): Promise<void> {
     const window = mainWindow ?? createMainWindow()
     await navigateMain(applicationUrl)
     if (isQuitting() || recovery.active || window.isDestroyed()) return
-    if (activate) window.show()
+    if (launchAnimation !== undefined) launchAnimation.reveal(window, activate)
+    else if (activate) window.show()
     else window.showInactive()
     enteredWorkspace = true
     if (welcomeWindow !== undefined) {
@@ -1180,6 +1198,9 @@ async function main(): Promise<void> {
           return { ok: true }
         },
         skip: enterWorkspace,
+      }, (window) => {
+        if (launchAnimation !== undefined) launchAnimation.welcomeReady(window)
+        else window.show()
       })
       const window = welcomeWindow
       window.once('closed', () => {
@@ -1219,6 +1240,7 @@ async function main(): Promise<void> {
   focusPrimaryWindow = () => {
     if (quitting) return
     if (isMandatory()) { mandatoryUI?.focus(); return }
+    if (launchAnimation?.focus() === true) return
     const window = welcomeWindow ?? mainWindow
     if (window === undefined || window.isDestroyed()) {
       try { createMainWindow() } catch (error) { reportFatal(error, 'main'); return }
@@ -1246,6 +1268,7 @@ async function main(): Promise<void> {
   })
   if (process.platform !== 'win32') powerMonitor.on('shutdown', () => { sessionEnding = true })
   const finishQuit = (): void => {
+    launchAnimation?.finish()
     quitting = true
     shuttingDown = true
     updateJournal?.action('quit-requested')
@@ -1265,6 +1288,7 @@ async function main(): Promise<void> {
   }
   app.on('before-quit', (event) => {
     if (shellInstallerOwnsQuit) {
+      launchAnimation?.finish()
       shuttingDown = true
       quitConfirmation.dispose()
       backgroundNotice?.dispose()

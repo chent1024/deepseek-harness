@@ -92,6 +92,15 @@ describe('desktop welcome window', () => {
     expect(window.show).toHaveBeenCalledOnce()
   })
 
+  it('hands a loaded hidden window to the startup presentation', async () => {
+    const window = createWindow()
+    electron.create.mockReturnValue(window)
+    const present = vi.fn()
+    expect(await openWelcomeWindow(resolveDesktopLocale('en'), operations, present)).toBe(window)
+    expect(present).toHaveBeenCalledExactlyOnceWith(window)
+    expect(window.show).not.toHaveBeenCalled()
+  })
+
   it('destroys a window whose document fails to load', async () => {
     const window = createWindow()
     window.loadFile.mockRejectedValue(new Error('missing welcome document'))

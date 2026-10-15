@@ -1,3 +1,15 @@
+vi.mock('../src/startup-animation.ts', () => ({ DesktopStartupAnimation: class {
+  start(): void {}
+  focus(): boolean { return false }
+  finish(): void {}
+  workspaceMounted(): void {}
+  welcomeReady(): void {}
+  response(): Promise<Response> { return Promise.resolve(new Response(null, { status: 404 })) }
+  reveal(window: { show(): void; showInactive(): void }, activate: boolean): void {
+    if (activate) window.show()
+    else window.showInactive()
+  }
+} }))
 import type { AccountView } from '@deepseek-ai/dsh-deepseek-account/types'
 import { WINDOWS_TITLEBAR_HEIGHT } from '../src/windows-layout.ts'
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'

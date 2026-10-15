@@ -184,6 +184,10 @@ macOS and Linux GUI launches inherit only the session manager's environment, wit
 
 <a id="develop"></a>
 
+Desktop randomly selects one bundled brand, cyberpunk or awakening video once per process launch. The startup window fits the primary display work area and preserves the complete 16:9 image without cropping, including after resizing. Normal startup replaces the loading presentation until the video has played completely, at least seven seconds of visible playback have elapsed, and the client has mounted and painted. A loaded Welcome window observes the same playback minimum. Media failure or OS reduced motion continues with the normal loading page; recovery and quit close the animation. Reloading or switching conversations does not replay it. The three videos are approximately 7.05 seconds each. Videos and their BSD license come from [dsh-boot-animation](https://github.com/NativeDog1/dsh-boot-animation); its selection plugin and configuration are not loaded.
+
+Merge `upstream/master` into the fork’s `master`, keeping the startup module, sandboxed preload, three videos, packaging entries and main-process/client-mount hooks together. After building, run `pnpm exec vitest run apps/desktop/tests/startup-animation.spec.ts apps/web/tests/desktop-boot.spec.ts` and `pnpm --dir apps/desktop run test:startup:local`. The latter uses real Electron with isolated user data and checks complete framing, full playback, the seven-second minimum, mount handoff, no replay and missing-media recovery against owner-local expected output.
+
 ## Develop
 
 The development application menu offers Reload Page (Cmd+R on macOS, Ctrl+R elsewhere) and Restart App and Host. Restart waits for Host shutdown before relaunching Electron and starting a new Host; neither action rebuilds source files.

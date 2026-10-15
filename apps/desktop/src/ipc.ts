@@ -13,6 +13,8 @@ export const DESKTOP_IPC = {
   shortcutsChanged: 'dsh-desktop:shortcuts-changed',
   shortcutsRecording: 'dsh-desktop:shortcuts-recording',
   boot: 'dsh-desktop:boot',
+  workspaceMounted: 'dsh-desktop:workspace-mounted',
+  startupPlayback: 'dsh-desktop:startup-playback',
   enterWorkspace: 'dsh-desktop:enter-workspace',
   onboardingActive: 'dsh-desktop:onboarding-active',
   onboardingApiKey: 'dsh-desktop:onboarding-api-key',
