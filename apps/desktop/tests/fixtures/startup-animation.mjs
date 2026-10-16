@@ -5,7 +5,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { app, BrowserWindow, protocol, screen } from 'electron'
+import { app, BrowserWindow, protocol, screen, ipcMain } from 'electron'
 import { DesktopStartupAnimation } from '../../lib/types/startup-animation.js'
 
 const root = fileURLToPath(new URL('../..', import.meta.url))
@@ -25,7 +25,8 @@ async function check() {
   await app.whenReady()
   protocol.handle('dsh-app', request => animation.response(request))
   const results = []
-  for (const clip of ['brand', 'cyberpunk', 'awakening', 'error']) {
+  for (const scenario of ['cyberpunk', 'awakening', 'late-mount', 'error']) {
+    const clip = scenario === 'late-mount' ? 'cyberpunk' : scenario
     const workspace = new BrowserWindow({ show: false, webPreferences: { sandbox: true } })
     workspace.once('show', () => { workspace.maximize() })
     try {
@@ -56,7 +57,7 @@ async function check() {
         if (video.currentTime >= 2) resolve();
         else video.addEventListener('timeupdate', function tick() { if (video.currentTime >= 2) { video.removeEventListener('timeupdate', tick); resolve(); } });
       })`)
-      writeFileSync(join(screenshots, `${clip}.png`), (await splash.webContents.capturePage()).toPNG())
+      writeFileSync(join(screenshots, `${scenario}.png`), (await splash.webContents.capturePage()).toPNG())
       const geometry = await splash.webContents.executeJavaScript(`(() => {
         const video = document.querySelector('video');
         const rect = video.getBoundingClientRect();
@@ -70,9 +71,34 @@ async function check() {
       assert.deepEqual(bounds, screen.getPrimaryDisplay().workArea)
       assert.equal(splash.isMaximized(), true)
       assert.equal(splash.isFullScreen(), false)
+      let ended = false
+      const observeEnded = (_event, state) => { if (state === 'ended') ended = true }
+      ipcMain.on('dsh-desktop:startup-playback', observeEnded)
+      splash.once('closed', () => ipcMain.off('dsh-desktop:startup-playback', observeEnded))
+      if (scenario === 'late-mount') {
+        await splash.webContents.executeJavaScript(`new Promise(resolve => {
+          const video = document.querySelector('video');
+          video.addEventListener('ended', () => resolve(), {once:true});
+        })`)
+        assert.equal(workspace.isVisible(), false)
+        assert.equal(splash.getOpacity(), 1)
+      }
       animation.workspaceMounted()
-      assert.equal(workspace.isVisible(), false)
+      if (scenario !== 'late-mount') assert.equal(workspace.isVisible(), false)
+      const opacity = await new Promise((resolve, reject) => {
+        const poll = () => {
+          if (splash.isDestroyed()) { reject(new Error('Startup closed without dissolving')); return }
+          if (splash.getOpacity() < 0.8) resolve(splash.getOpacity())
+          else setTimeout(poll, 16)
+        }
+        poll()
+      })
+      assert.ok(opacity > 0 && opacity < 1)
+      assert.equal(workspace.isVisible(), true)
+      const stillPlaying = await splash.webContents.executeJavaScript(`!document.querySelector('video').ended`)
+      assert.equal(stillPlaying, scenario !== 'late-mount')
       await closed
+      assert.equal(ended, true)
       const minimum = performance.now() - started >= 7000
       assert.equal(minimum, true)
       await workspaceMaximized
@@ -81,7 +107,7 @@ async function check() {
       assert.equal(workspace.isFullScreen(), false)
       animation.reveal(workspace, true)
       animation.workspaceMounted()
-      results.push({ clip, played, minimum, maximized: true, workspaceMaximized: true, uncropped: true, hiddenUntilCompleted: true, closed: splash.isDestroyed(),
+      results.push({ clip: scenario, played, minimum, maximized: true, workspaceMaximized: true, uncropped: true, tailDissolve: scenario !== 'late-mount', lateDissolve: scenario === 'late-mount', fullPlayback: true, closed: splash.isDestroyed(),
         replayed: BrowserWindow.getAllWindows().some(window => window !== workspace) })
     } finally {
       animation?.finish()

@@ -20,6 +20,9 @@ export class DesktopStartupAnimation {
   private ended = false
   private minimumElapsed = false
   private timer: ReturnType<typeof setTimeout> | undefined
+  private tailRemaining: number | undefined
+  private tailDissolveStart: number | undefined
+  private dissolveTimer: ReturnType<typeof setInterval> | undefined
   private readonly resource: string
 
   /**
@@ -46,11 +49,15 @@ export class DesktopStartupAnimation {
         this.tryReveal()
       }, MINIMUM_PLAYBACK_MS)
     }
-    const playback = (event: Electron.IpcMainEvent, state: unknown): void => {
+    const playback = (event: Electron.IpcMainEvent, state: unknown, remaining: unknown): void => {
       assertDesktopSender(event, ['startup'])
       if (event.sender !== window.webContents || event.senderFrame !== window.webContents.mainFrame) return
       if (state === 'playing') { this.playing = true; beginMinimum() }
       else if (state === 'ended') { this.ended = true; this.tryReveal() }
+      else if (state === 'tail' && typeof remaining === 'number' && Number.isFinite(remaining) && remaining > 0 && remaining <= 2000) {
+        this.tailRemaining = remaining
+        this.tryReveal()
+      }
       else if (state === 'error' || state === 'reduced-motion') this.finish(true)
       else throw new Error('Desktop startup: invalid playback signal')
     }
@@ -58,6 +65,7 @@ export class DesktopStartupAnimation {
     window.once('closed', () => {
       ipcMain.off(DESKTOP_IPC.startupPlayback, playback)
       this.clearTimer()
+      this.clearDissolveTimer()
       this.window = undefined
     })
     window.on('close', (event) => { event.preventDefault() })
@@ -94,14 +102,15 @@ export class DesktopStartupAnimation {
   }
 
   /**
-   * Preserve activation while awaiting successful mount and completed playback.
+   * Dissolve into the mounted destination during the final two seconds; finish after full playback and seven visible seconds.
    * @param window - Owned workspace or loaded Welcome window.
    * @param activate - Whether entering the destination should focus it.
    */
   reveal(window: WorkspaceWindow, activate: boolean): void {
-    if (this.window !== undefined && !(this.mounted && this.ended && this.minimumElapsed)) {
+    if (this.window !== undefined) {
       window.webContents.setBackgroundThrottling(false)
       this.pending = { window, activate }
+      this.tryReveal()
       return
     }
     window.webContents.setBackgroundThrottling(true)
@@ -132,10 +141,44 @@ export class DesktopStartupAnimation {
   welcomeReady(window: WorkspaceWindow): void { this.mounted = true; this.reveal(window, true) }
 
   private tryReveal(): void {
-    if (!this.mounted || !this.ended || !this.minimumElapsed) return
     const pending = this.pending
-    this.pending = undefined
-    if (pending !== undefined && !pending.window.isDestroyed()) this.reveal(pending.window, pending.activate)
+    const window = this.window
+    if (!this.mounted || pending === undefined || window === undefined || !window.isVisible()) return
+    if (pending.window.isDestroyed()) { this.finish(); return }
+    if (!this.ended && this.tailRemaining !== undefined) {
+      if (this.tailDissolveStart === undefined) {
+        this.beginDissolve(window, pending.window)
+        this.tailDissolveStart = this.tailRemaining
+      }
+      // Media time keeps the dissolve aligned when decoding pauses or resumes.
+      this.setDissolveProgress(window, 1 - this.tailRemaining / this.tailDissolveStart)
+    }
+    if (!this.ended || !this.minimumElapsed) return
+    if (this.tailDissolveStart !== undefined) { this.finish(true); return }
+    if (this.dissolveTimer !== undefined) return
+    this.beginDissolve(window, pending.window)
+    const started = performance.now()
+    this.dissolveTimer = setInterval(() => {
+      if (pending.window.isDestroyed()) { this.finish(); return }
+      const progress = Math.min((performance.now() - started) / 2000, 1)
+      this.setDissolveProgress(window, progress)
+      if (progress === 1) this.finish(true)
+    }, 16)
+  }
+
+  private beginDissolve(window: BrowserWindow, destination: WorkspaceWindow): void {
+    // Keep the live, painted destination beneath the playing video without transferring focus.
+    destination.showInactive()
+    window.moveTop()
+  }
+
+  private setDissolveProgress(window: BrowserWindow, progress: number): void {
+    window.setOpacity(1 - progress * progress * (3 - 2 * progress))
+  }
+
+  private clearDissolveTimer(): void {
+    if (this.dissolveTimer !== undefined) clearInterval(this.dissolveTimer)
+    this.dissolveTimer = undefined
   }
 
   private clearTimer(): void {
@@ -145,10 +188,11 @@ export class DesktopStartupAnimation {
 
   /**
    * Close during handoff, recovery, media failure, reduced motion, or quit.
-   * @param revealPending - Continue with the normal loading page after a media failure or reduced motion.
+   * @param revealPending - Present the queued destination with its requested activation after handoff or animation failure.
    */
   finish(revealPending = false): void {
     this.clearTimer()
+    this.clearDissolveTimer()
     const window = this.window
     this.window = undefined
     if (window !== undefined && !window.isDestroyed()) window.destroy()

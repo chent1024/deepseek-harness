@@ -156,7 +156,7 @@ export function createElectronBuilderConfig(
       { from: fileURLToPath(new URL('../resources/icon-windows.png', import.meta.url)), to: 'icon.png' },
       // Windows tray bitmaps; macOS keeps the Dock and ships no menu bar icon.
       ...(packagesWindows ? [{ from: fileURLToPath(new URL('../resources/tray-windows.ico', import.meta.url)), to: 'tray.ico' }] : []),
-      ...['brand', 'cyberpunk', 'awakening'].map(name => ({
+      ...['cyberpunk', 'awakening'].map(name => ({
         from: fileURLToPath(new URL(`../resources/startup-animation-${name}.mp4`, import.meta.url)), to: `startup-animation-${name}.mp4`,
       })),
       { from: fileURLToPath(new URL('../resources/startup-animation.LICENSE', import.meta.url)), to: 'startup-animation.LICENSE' },

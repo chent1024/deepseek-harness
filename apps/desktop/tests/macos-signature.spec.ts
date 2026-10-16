@@ -57,8 +57,8 @@ describe('desktop macOS release signature', () => {
       'com.apple.security.cs.disable-library-validation', 'com.apple.security.device.audio-input']) {
       expect(entitlements).toContain(`<key>${key}</key>\n    <true/>`)
     }
-    expect(config.extraResources).toHaveLength(6)
-    expect(config.extraResources.map(resource => resource.to)).toEqual(['runtime', 'icon.png', 'startup-animation-brand.mp4', 'startup-animation-cyberpunk.mp4', 'startup-animation-awakening.mp4', 'startup-animation.LICENSE'])
+    expect(config.extraResources).toHaveLength(5)
+    expect(config.extraResources.map(resource => resource.to)).toEqual(['runtime', 'icon.png', 'startup-animation-cyberpunk.mp4', 'startup-animation-awakening.mp4', 'startup-animation.LICENSE'])
     expect(config.files).toContain('lib/preload-startup.cjs')
     expect(config.extraResources[0]?.to).toBe('runtime')
     expect(portablePath(config.extraResources[0]?.from ?? '')).toContain('/.desktop-build/targets/mac-arm64/runtime')

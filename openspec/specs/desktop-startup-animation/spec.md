@@ -4,14 +4,14 @@
 Present a complete local video during Electron startup and hand off to a ready workspace or Welcome after full playback and the minimum visible duration.
 ## Requirements
 ### Requirement: Bundled startup video pool
-Desktop SHALL select once per process from the bundled brand, cyberpunk and awakening videos and show it before Host preparation without reading selection-plugin configuration or making a media network request.
+Desktop SHALL select once per process from the bundled cyberpunk and awakening videos and show it before Host preparation without reading selection-plugin configuration or making a media network request.
 
 #### Scenario: Cold launch
 - **WHEN** the Desktop process starts
 - **THEN** its startup window loads the bundled video before profile preparation and Host startup
 
 ### Requirement: Handoff follows client readiness
-Desktop SHALL retain the animation while Host is ready but the workspace has not mounted, and SHALL reveal the workspace only after successful mount and painted frames, complete video playback and at least seven seconds of visible playback. A loaded Welcome window SHALL follow the same playback requirements.
+Desktop SHALL retain the animation while Host is ready but the workspace has not mounted, and SHALL start the dissolve only after successful mount and painted frames. The playing video SHALL dissolve into the ready workspace during its final two seconds, following media time through playback stalls. The handoff SHALL complete only after full playback and at least seven visible seconds, including the dissolve. A loaded Welcome window SHALL follow the same playback requirements.
 
 #### Scenario: Delayed client mount
 - **WHEN** Host is ready and the workspace is still mounting
@@ -30,7 +30,7 @@ Desktop SHALL close the animation during handoff, media failure, reduced motion,
 
 #### Scenario: Early destination readiness
 - **WHEN** the workspace or Welcome is ready before seven seconds of visible playback
-- **THEN** it remains hidden until seven seconds have elapsed and the video has ended
+- **THEN** it remains hidden until the final two seconds, then appears beneath the dissolving video; the handoff completes only after seven seconds have elapsed and the video has ended
 
 #### Scenario: Long video
 - **WHEN** seven seconds have elapsed but the video is still playing
@@ -46,3 +46,14 @@ Desktop SHALL display the complete video at its original aspect ratio without cr
 #### Scenario: Maximized launch
 - **WHEN** Desktop starts on a display with a different aspect ratio from the bundled video
 - **THEN** the startup window fills the display work area, the complete video remains visible with black margins and the ready workspace opens maximized
+
+### Requirement: Late destination dissolve
+Desktop SHALL keep the final frame opaque when playback finishes before the destination is ready, then dissolve into the ready window over two seconds. Recovery, media failure, reduced motion and quit SHALL cancel the dissolve and release its callbacks.
+
+#### Scenario: Destination mounts after the video ends
+- **WHEN** the video has ended and the workspace subsequently mounts and paints
+- **THEN** the final frame dissolves over two seconds into the workspace without replaying the video
+
+#### Scenario: Playback stalls during the tail
+- **WHEN** playback pauses during the final two seconds
+- **THEN** dissolve progress stays aligned with video time and the startup window remains until playback ends

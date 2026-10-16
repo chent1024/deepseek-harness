@@ -24,6 +24,8 @@ class TestWindow extends EventEmitter {
   readonly show = vi.fn(() => { this.visible = true })
   readonly maximize = vi.fn(() => { this.visible = true })
   readonly showInactive = vi.fn(() => { this.visible = true })
+  readonly moveTop = vi.fn()
+  readonly setOpacity = vi.fn()
   readonly loadURL = vi.fn(async () => {})
   readonly destroy = vi.fn(() => { this.destroyed = true; this.emit('closed') })
   isDestroyed(): boolean { return this.destroyed }
@@ -44,9 +46,10 @@ beforeEach(() => {
 })
 afterEach(() => { animation.finish(); expect(vi.getTimerCount()).toBe(0); vi.useRealTimers(); vi.clearAllMocks() })
 
-function playback(state: string, sender = splash): void {
-  const callback = native.on.mock.calls.find(([name]) => name === DESKTOP_IPC.startupPlayback)![1] as (event: object, state: string) => void
-  callback({ sender: sender.webContents, senderFrame: sender.webContents.mainFrame }, state)
+function playback(state: string, sender = splash, remaining?: number): void {
+  const callback = native.on.mock.calls.find(([name]) => name === DESKTOP_IPC.startupPlayback)![1] as
+    (event: object, state: string, remaining?: number) => void
+  callback({ sender: sender.webContents, senderFrame: sender.webContents.mainFrame }, state, remaining)
 }
 function visiblePlayback(): void {
   animation.start()
@@ -64,6 +67,8 @@ it('waits for seven visible seconds and the full video even when the workspace m
   expect(splash.destroy).not.toHaveBeenCalled()
   playback('ended')
   expect(workspace.showInactive).toHaveBeenCalledOnce()
+  expect(splash.destroy).not.toHaveBeenCalled()
+  vi.advanceTimersByTime(2016)
   expect(workspace.webContents.setBackgroundThrottling).toHaveBeenLastCalledWith(true)
   expect(splash.destroy).toHaveBeenCalledOnce()
   animation.reveal(workspace, true)
@@ -79,6 +84,8 @@ it('does not shorten the seven seconds when a clip ends early', () => {
   vi.advanceTimersByTime(6999)
   expect(workspace.show).not.toHaveBeenCalled()
   vi.advanceTimersByTime(1)
+  expect(workspace.show).not.toHaveBeenCalled()
+  vi.advanceTimersByTime(2016)
   expect(workspace.show).toHaveBeenCalledOnce()
 })
 
@@ -89,6 +96,8 @@ it('waits for late workspace mount after playback and the minimum have completed
   vi.advanceTimersByTime(7000)
   expect(splash.destroy).not.toHaveBeenCalled()
   animation.workspaceMounted()
+  expect(splash.destroy).not.toHaveBeenCalled()
+  vi.advanceTimersByTime(2016)
   expect(splash.destroy).toHaveBeenCalledOnce()
 })
 
@@ -104,6 +113,7 @@ it('starts the minimum only after playback is visible and does not reset it on r
   vi.advanceTimersByTime(6000)
   playback('playing')
   vi.advanceTimersByTime(1000)
+  vi.advanceTimersByTime(2016)
   expect(splash.destroy).toHaveBeenCalledOnce()
 })
 
@@ -114,6 +124,7 @@ it('retains the loaded Welcome window until the same minimum and video completio
   vi.advanceTimersByTime(6999)
   expect(workspace.show).not.toHaveBeenCalled()
   vi.advanceTimersByTime(1)
+  vi.advanceTimersByTime(2016)
   expect(workspace.show).toHaveBeenCalledOnce()
 })
 
@@ -138,15 +149,73 @@ it.each(['error', 'reduced-motion'])('allows %s only from the owned startup fram
   expect(workspace.show).toHaveBeenCalledOnce()
 })
 
-it.each([0, 1, 2])('selects pool entry %i once and keeps the same media for all requests', async (index) => {
+it.each([0, 1])('selects pool entry %i once and keeps the same media for all requests', async (index) => {
   native.randomInt.mockClear().mockReturnValue(index)
-  animation = new DesktopStartupAnimation(['/brand.mp4', '/cyberpunk.mp4', '/awakening.mp4'], '/preload.cjs')
+  animation = new DesktopStartupAnimation(['/cyberpunk.mp4', '/awakening.mp4'], '/preload.cjs')
   native.fetch.mockImplementation(async () => new Response('video'))
   for (let request = 0; request < 2; request++) {
     await animation.response(new Request('dsh-app://startup/video'))
-    expect(native.fetch).toHaveBeenLastCalledWith(['file:///brand.mp4', 'file:///cyberpunk.mp4', 'file:///awakening.mp4'][index], expect.any(Object))
+    expect(native.fetch).toHaveBeenLastCalledWith(['file:///cyberpunk.mp4', 'file:///awakening.mp4'][index], expect.any(Object))
   }
-  expect(native.randomInt).toHaveBeenCalledExactlyOnceWith(3)
+  expect(native.randomInt).toHaveBeenCalledExactlyOnceWith(2)
+})
+
+it('dissolves into the mounted workspace over the live tail and closes only after seven seconds and ended', () => {
+  visiblePlayback()
+  animation.reveal(workspace, true)
+  animation.workspaceMounted()
+  vi.advanceTimersByTime(5000)
+  playback('tail', splash, 2000)
+  expect(workspace.showInactive).toHaveBeenCalledOnce()
+  expect(workspace.show).not.toHaveBeenCalled()
+  expect(splash.moveTop).toHaveBeenCalledOnce()
+  playback('tail', splash, 1000)
+  expect(splash.setOpacity).toHaveBeenLastCalledWith(0.5)
+  vi.advanceTimersByTime(3000)
+  expect(splash.setOpacity).toHaveBeenLastCalledWith(0.5)
+  expect(splash.destroy).not.toHaveBeenCalled()
+  playback('tail', splash, 100)
+  playback('ended')
+  expect(splash.destroy).toHaveBeenCalledOnce()
+  expect(workspace.show).toHaveBeenCalledOnce()
+})
+
+it('starts a late-mounted destination at full opacity and uses the remaining tail', () => {
+  visiblePlayback()
+  animation.reveal(workspace, false)
+  playback('tail', splash, 600)
+  expect(workspace.showInactive).not.toHaveBeenCalled()
+  animation.workspaceMounted()
+  expect(splash.setOpacity).toHaveBeenLastCalledWith(1)
+  playback('tail', splash, 300)
+  expect(splash.setOpacity).toHaveBeenLastCalledWith(0.5)
+  playback('ended')
+  expect(splash.destroy).not.toHaveBeenCalled()
+  vi.advanceTimersByTime(7000)
+  expect(splash.destroy).toHaveBeenCalledOnce()
+})
+
+it('cleans up an end dissolve on recovery and ignores tail signals from another frame', () => {
+  visiblePlayback()
+  animation.reveal(workspace, true)
+  animation.workspaceMounted()
+  playback('tail', workspace, 1000)
+  expect(workspace.showInactive).not.toHaveBeenCalled()
+  playback('ended')
+  vi.advanceTimersByTime(7500)
+  expect(splash.setOpacity).toHaveBeenCalled()
+  animation.finish()
+  vi.advanceTimersByTime(2000)
+  expect(workspace.show).not.toHaveBeenCalled()
+  expect(splash.destroy).toHaveBeenCalledOnce()
+})
+
+it.each([NaN, Infinity, -1, 0, 2001])('rejects invalid tail duration %s without revealing the destination', (remaining) => {
+  visiblePlayback()
+  animation.reveal(workspace, true)
+  animation.workspaceMounted()
+  expect(() => { playback('tail', splash, remaining) }).toThrow('invalid playback signal')
+  expect(workspace.showInactive).not.toHaveBeenCalled()
 })
 
 it('denies unrelated resource paths and methods', async () => {

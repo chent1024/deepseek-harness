@@ -320,7 +320,6 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
 async function main(): Promise<void> {
   const startupResources = app.isPackaged ? process.resourcesPath : join(app.getAppPath(), 'resources')
   launchAnimation = new DesktopStartupAnimation([
-    join(startupResources, 'startup-animation-brand.mp4'),
     join(startupResources, 'startup-animation-cyberpunk.mp4'),
     join(startupResources, 'startup-animation-awakening.mp4'),
   ], join(app.getAppPath(), 'lib', 'preload-startup.cjs'))
