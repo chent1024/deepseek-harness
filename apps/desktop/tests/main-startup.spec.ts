@@ -106,6 +106,7 @@ const harness = await vi.hoisted(async () => {
     readonly moveTop = vi.fn()
     readonly setAlwaysOnTop = vi.fn()
     readonly restore = vi.fn()
+    readonly maximize = vi.fn()
     readonly setSize = vi.fn()
     readonly getBounds = vi.fn(() => ({ x: 0, y: 0, width: 800, height: 700 }))
     readonly setMinimumSize = vi.fn()
@@ -853,6 +854,19 @@ describe('desktop main startup', () => {
       expect(window.options).not.toHaveProperty('vibrancy')
     }
     expect(harness.hosts).toHaveLength(0)
+  })
+
+  it.each(['darwin', 'win32', 'linux'] as const)('maximizes the %s workspace only on its first presentation', async (platform) => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue(platform)
+    await import('../src/main.ts')
+    await harness.preparing.promise
+    const window = harness.windows[0]!
+    expect(window.maximize).not.toHaveBeenCalled()
+    window.emit('show')
+    expect(window.maximize).toHaveBeenCalledOnce()
+    expect(window.setFullScreen).not.toHaveBeenCalled()
+    window.emit('show')
+    expect(window.maximize).toHaveBeenCalledOnce()
   })
 
   it('serves packaged shell documents instead of rejecting the shell origin', async () => {

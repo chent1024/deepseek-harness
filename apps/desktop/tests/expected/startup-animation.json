@@ -6,7 +6,9 @@
     "uncropped": true,
     "hiddenUntilCompleted": true,
     "closed": true,
-    "replayed": false
+    "replayed": false,
+    "maximized": true,
+    "workspaceMaximized": true
   },
   {
     "clip": "cyberpunk",
@@ -15,7 +17,9 @@
     "uncropped": true,
     "hiddenUntilCompleted": true,
     "closed": true,
-    "replayed": false
+    "replayed": false,
+    "maximized": true,
+    "workspaceMaximized": true
   },
   {
     "clip": "awakening",
@@ -24,7 +28,9 @@
     "uncropped": true,
     "hiddenUntilCompleted": true,
     "closed": true,
-    "replayed": false
+    "replayed": false,
+    "maximized": true,
+    "workspaceMaximized": true
   },
   {
     "clip": "error",

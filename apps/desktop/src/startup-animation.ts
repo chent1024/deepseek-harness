@@ -33,13 +33,8 @@ export class DesktopStartupAnimation {
 
   /** Start without awaiting Host startup; ordinary navigation never calls this again. */
   start(): void {
-    const area = screen.getPrimaryDisplay().workArea
-    const scale = Math.min(1, area.width / 1280, area.height / 720)
-    const width = Math.floor(1280 * scale)
-    const height = Math.floor(720 * scale)
-    const window = new BrowserWindow({ width, height,
-      x: area.x + Math.floor((area.width - width) / 2), y: area.y + Math.floor((area.height - height) / 2),
-      show: false, frame: false,
+    const bounds = screen.getPrimaryDisplay().workArea
+    const window = new BrowserWindow({ ...bounds, show: false, frame: false,
       backgroundColor: '#000000', webPreferences: { preload: this.preload, sandbox: true,
         contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } })
     this.window = window
@@ -69,7 +64,7 @@ export class DesktopStartupAnimation {
     window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
     window.webContents.on('will-navigate', (event) => { event.preventDefault() })
     window.once('ready-to-show', () => {
-      if (!window.isDestroyed()) { window.show(); beginMinimum() }
+      if (!window.isDestroyed()) { window.maximize(); window.show(); beginMinimum() }
     })
     void window.loadURL(`${SCHEME}://startup/`).catch((error: unknown) => {
       console.warn('Desktop startup animation failed:', error instanceof Error ? error.name : 'load failure')

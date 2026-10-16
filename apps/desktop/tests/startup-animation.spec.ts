@@ -22,6 +22,7 @@ class TestWindow extends EventEmitter {
   })
   readonly focus = vi.fn()
   readonly show = vi.fn(() => { this.visible = true })
+  readonly maximize = vi.fn(() => { this.visible = true })
   readonly showInactive = vi.fn(() => { this.visible = true })
   readonly loadURL = vi.fn(async () => {})
   readonly destroy = vi.fn(() => { this.destroyed = true; this.emit('closed') })
@@ -162,10 +163,14 @@ it('keeps activation on the startup window until handoff', () => {
   expect(animation.focus()).toBe(false)
 })
 
-it('centers the complete 16:9 presentation inside a smaller display work area', async () => {
-  native.display.mockReturnValue({ workArea: { x: -1024, y: 30, width: 1024, height: 600 } })
+it('maximizes over the primary work area while preserving the complete video', async () => {
+  native.display.mockReturnValue({ workArea: { x: -1024, y: 30, width: 1024, height: 738 } })
   animation.start()
-  expect(native.createWindow).toHaveBeenCalledWith(expect.objectContaining({ width: 1024, height: 576, x: -1024, y: 42 }))
+  expect(native.createWindow).toHaveBeenCalledWith(expect.objectContaining({ width: 1024, height: 738, x: -1024, y: 30 }))
+  expect(native.createWindow.mock.calls[0]?.[0]).not.toHaveProperty('fullscreen')
+  expect(splash.maximize).not.toHaveBeenCalled()
+  splash.emit('ready-to-show')
+  expect(splash.maximize).toHaveBeenCalledOnce()
   const html = await (await animation.response(new Request('dsh-app://startup/'))).text()
   expect(html).toContain('object-fit:contain')
 })

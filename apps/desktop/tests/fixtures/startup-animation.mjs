@@ -27,10 +27,12 @@ async function check() {
   const results = []
   for (const clip of ['brand', 'cyberpunk', 'awakening', 'error']) {
     const workspace = new BrowserWindow({ show: false, webPreferences: { sandbox: true } })
+    workspace.once('show', () => { workspace.maximize() })
     try {
       await workspace.loadURL('data:text/html,<main>Workspace mounted</main>')
       animation = new DesktopStartupAnimation([join(root, 'resources', clip === 'error' ? 'missing.mp4' : `startup-animation-${clip}.mp4`)],
         join(root, 'lib/preload-startup.cjs'))
+      const workspaceMaximized = clip === 'error' ? undefined : once(workspace, 'maximize')
       const started = performance.now()
       animation.start()
       const splash = BrowserWindow.getAllWindows().find(window => window !== workspace)
@@ -65,17 +67,21 @@ async function check() {
       assert.equal(geometry.width / geometry.height, 16 / 9)
       assert.ok(geometry.left >= 0 && geometry.top >= 0 && geometry.right <= geometry.viewportWidth && geometry.bottom <= geometry.viewportHeight)
       const bounds = splash.getBounds()
-      const area = screen.getPrimaryDisplay().workArea
-      assert.ok(bounds.x >= area.x && bounds.y >= area.y && bounds.x + bounds.width <= area.x + area.width && bounds.y + bounds.height <= area.y + area.height)
+      assert.deepEqual(bounds, screen.getPrimaryDisplay().workArea)
+      assert.equal(splash.isMaximized(), true)
+      assert.equal(splash.isFullScreen(), false)
       animation.workspaceMounted()
       assert.equal(workspace.isVisible(), false)
       await closed
       const minimum = performance.now() - started >= 7000
       assert.equal(minimum, true)
+      await workspaceMaximized
       assert.equal(workspace.isVisible(), true)
+      assert.equal(workspace.isMaximized(), true)
+      assert.equal(workspace.isFullScreen(), false)
       animation.reveal(workspace, true)
       animation.workspaceMounted()
-      results.push({ clip, played, minimum, uncropped: true, hiddenUntilCompleted: true, closed: splash.isDestroyed(),
+      results.push({ clip, played, minimum, maximized: true, workspaceMaximized: true, uncropped: true, hiddenUntilCompleted: true, closed: splash.isDestroyed(),
         replayed: BrowserWindow.getAllWindows().some(window => window !== workspace) })
     } finally {
       animation?.finish()

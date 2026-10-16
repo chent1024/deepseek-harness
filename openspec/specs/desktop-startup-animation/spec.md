@@ -41,8 +41,8 @@ Desktop SHALL close the animation during handoff, media failure, reduced motion,
 - **THEN** the startup window closes and ordinary startup continues
 
 ### Requirement: Complete video framing
-Desktop SHALL display the complete video at its original aspect ratio without cropping and SHALL size the startup window within the primary display work area.
+Desktop SHALL display the complete video at its original aspect ratio without cropping and SHALL open the startup window maximized in the primary display work area. The workspace SHALL maximize on its first presentation with normal desktop window controls.
 
-#### Scenario: Smaller display
-- **WHEN** the display work area is smaller than the bundled 1280 by 720 video
-- **THEN** the startup window scales down to fit and the complete video remains visible
+#### Scenario: Maximized launch
+- **WHEN** Desktop starts on a display with a different aspect ratio from the bundled video
+- **THEN** the startup window fills the display work area, the complete video remains visible with black margins and the ready workspace opens maximized
