@@ -26,6 +26,19 @@
     "fullPlayback": true
   },
   {
+    "clip": "chibi",
+    "played": true,
+    "minimum": true,
+    "uncropped": true,
+    "closed": true,
+    "replayed": false,
+    "maximized": true,
+    "workspaceMaximized": true,
+    "tailDissolve": true,
+    "lateDissolve": false,
+    "fullPlayback": true
+  },
+  {
     "clip": "late-mount",
     "played": true,
     "minimum": true,
@@ -42,5 +55,33 @@
     "clip": "error",
     "closed": true,
     "continued": true
+  },
+  {
+    "clip": "skip-before-ready",
+    "skipped": true,
+    "closed": true,
+    "destinationShown": true,
+    "replayed": false
+  },
+  {
+    "clip": "skip-ready",
+    "skipped": true,
+    "closed": true,
+    "destinationShown": true,
+    "replayed": false
+  },
+  {
+    "clip": "skip-tail",
+    "skipped": true,
+    "closed": true,
+    "destinationShown": true,
+    "replayed": false
+  },
+  {
+    "clip": "skip-late",
+    "skipped": true,
+    "closed": true,
+    "destinationShown": true,
+    "replayed": false
   }
 ]

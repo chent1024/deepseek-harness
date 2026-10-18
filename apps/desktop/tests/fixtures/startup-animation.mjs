@@ -7,6 +7,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { app, BrowserWindow, protocol, screen, ipcMain } from 'electron'
 import { DesktopStartupAnimation } from '../../lib/types/startup-animation.js'
+import { en } from '../../lib/types/locale.js'
 
 const root = fileURLToPath(new URL('../..', import.meta.url))
 const screenshots = join(root, '.desktop-build/qualification', `startup-framing-${Date.now()}`)
@@ -19,20 +20,21 @@ protocol.registerSchemesAsPrivileged([{ scheme: 'dsh-app', privileges: {
 app.on('window-all-closed', () => {})
 let animation
 let timer
-const deadline = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Startup qualification timed out')), 45_000) })
+// Full playback plus tail and late-dissolve skip cases require at least 54 seconds.
+const deadline = new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Startup qualification timed out')), 90_000) })
 
 async function check() {
   await app.whenReady()
   protocol.handle('dsh-app', request => animation.response(request))
   const results = []
-  for (const scenario of ['cyberpunk', 'awakening', 'late-mount', 'error']) {
+  for (const scenario of ['cyberpunk', 'awakening', 'chibi', 'late-mount', 'error']) {
     const clip = scenario === 'late-mount' ? 'cyberpunk' : scenario
     const workspace = new BrowserWindow({ show: false, webPreferences: { sandbox: true } })
     workspace.once('show', () => { workspace.maximize() })
     try {
       await workspace.loadURL('data:text/html,<main>Workspace mounted</main>')
       animation = new DesktopStartupAnimation([join(root, 'resources', clip === 'error' ? 'missing.mp4' : `startup-animation-${clip}.mp4`)],
-        join(root, 'lib/preload-startup.cjs'))
+        join(root, 'lib/preload-startup.cjs'), en.startupSkip)
       const workspaceMaximized = clip === 'error' ? undefined : once(workspace, 'maximize')
       const started = performance.now()
       animation.start()
@@ -73,7 +75,8 @@ async function check() {
       assert.equal(splash.isFullScreen(), false)
       let ended = false
       const observeEnded = (_event, state) => { if (state === 'ended') ended = true }
-      ipcMain.on('dsh-desktop:startup-playback', observeEnded)
+      // The playback handler can destroy this window while handling the same ended signal.
+      ipcMain.prependListener('dsh-desktop:startup-playback', observeEnded)
       splash.once('closed', () => ipcMain.off('dsh-desktop:startup-playback', observeEnded))
       if (scenario === 'late-mount') {
         await splash.webContents.executeJavaScript(`new Promise(resolve => {
@@ -98,7 +101,7 @@ async function check() {
       const stillPlaying = await splash.webContents.executeJavaScript(`!document.querySelector('video').ended`)
       assert.equal(stillPlaying, scenario !== 'late-mount')
       await closed
-      assert.equal(ended, true)
+      assert.equal(ended, true, `${scenario}: the full playback must end before handoff`)
       const minimum = performance.now() - started >= 7000
       assert.equal(minimum, true)
       await workspaceMaximized
@@ -109,6 +112,74 @@ async function check() {
       animation.workspaceMounted()
       results.push({ clip: scenario, played, minimum, maximized: true, workspaceMaximized: true, uncropped: true, tailDissolve: scenario !== 'late-mount', lateDissolve: scenario === 'late-mount', fullPlayback: true, closed: splash.isDestroyed(),
         replayed: BrowserWindow.getAllWindows().some(window => window !== workspace) })
+    } finally {
+      animation?.finish()
+      if (!workspace.isDestroyed()) workspace.destroy()
+    }
+  }
+  for (const scenario of ['skip-before-ready', 'skip-ready', 'skip-tail', 'skip-late']) {
+    console.log('STARTUP_SKIP_SCENARIO', scenario)
+    const clip = scenario === 'skip-before-ready' ? 'chibi' : scenario === 'skip-tail' ? 'awakening' : 'cyberpunk'
+    const workspace = new BrowserWindow({ show: false, webPreferences: { sandbox: true } })
+    try {
+      await workspace.loadURL('data:text/html,<main>Normal destination loading</main>')
+      animation = new DesktopStartupAnimation([join(root, 'resources', `startup-animation-${clip}.mp4`)],
+        join(root, 'lib/preload-startup.cjs'), en.startupSkip)
+      animation.start()
+      const splash = BrowserWindow.getAllWindows().find(window => window !== workspace)
+      assert.ok(splash)
+      const closed = once(splash, 'closed')
+      await once(splash.webContents, 'did-finish-load')
+      if (!splash.isVisible()) await once(splash, 'show')
+      splash.focus()
+      splash.webContents.focus()
+      const button = await splash.webContents.executeJavaScript(`(() => {
+        const button = document.querySelector('button');
+        const rect = button.getBoundingClientRect();
+        return { label: button.textContent, x: rect.x + rect.width / 2, y: rect.y + rect.height / 2,
+          top: rect.top, right: rect.right, width: rect.width, height: rect.height, viewport: innerWidth };
+      })()`)
+      assert.equal(button.label, en.startupSkip)
+      assert.ok(button.top >= 0 && button.right <= button.viewport && button.width >= 44 && button.height >= 44)
+      if (scenario !== 'skip-before-ready') animation.reveal(workspace, true)
+      if (scenario === 'skip-late') {
+        await splash.webContents.executeJavaScript(`new Promise(resolve => {
+          const video = document.querySelector('video');
+          if (video.ended) resolve(); else video.addEventListener('ended', resolve, {once:true});
+        })`)
+        animation.workspaceMounted()
+      } else if (scenario !== 'skip-before-ready') {
+        animation.workspaceMounted()
+        if (scenario === 'skip-tail') {
+          await splash.webContents.executeJavaScript(`new Promise(resolve => {
+            const video = document.querySelector('video');
+            video.addEventListener('timeupdate', function tick() {
+              if (video.duration - video.currentTime < 1) { video.removeEventListener('timeupdate', tick); resolve(); }
+            });
+          })`)
+          assert.ok(splash.getOpacity() < 1)
+        }
+      }
+      if (scenario === 'skip-before-ready') {
+        await splash.webContents.executeJavaScript(`document.querySelector('button').focus()`)
+        splash.webContents.sendInputEvent({ type: 'keyDown', keyCode: 'Enter' })
+        splash.webContents.sendInputEvent({ type: 'char', keyCode: '\r' })
+        splash.webContents.sendInputEvent({ type: 'keyUp', keyCode: 'Enter' })
+      } else {
+        const point = { x: Math.round(button.x), y: Math.round(button.y), button: 'left', clickCount: 1 }
+        splash.webContents.sendInputEvent({ type: 'mouseDown', ...point })
+        splash.webContents.sendInputEvent({ type: 'mouseUp', ...point })
+      }
+      await closed
+      console.log('STARTUP_SKIP_CLOSED', scenario)
+      if (scenario === 'skip-before-ready') {
+        assert.equal(workspace.isVisible(), false)
+        animation.reveal(workspace, true)
+      }
+      assert.equal(workspace.isVisible(), true)
+      animation.workspaceMounted()
+      assert.equal(BrowserWindow.getAllWindows().length, 1)
+      results.push({ clip: scenario, skipped: true, closed: true, destinationShown: true, replayed: false })
     } finally {
       animation?.finish()
       if (!workspace.isDestroyed()) workspace.destroy()

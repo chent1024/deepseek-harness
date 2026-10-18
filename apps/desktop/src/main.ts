@@ -319,10 +319,6 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
 
 async function main(): Promise<void> {
   const startupResources = app.isPackaged ? process.resourcesPath : join(app.getAppPath(), 'resources')
-  launchAnimation = new DesktopStartupAnimation([
-    join(startupResources, 'startup-animation-cyberpunk.mp4'),
-    join(startupResources, 'startup-animation-awakening.mp4'),
-  ], join(app.getAppPath(), 'lib', 'preload-startup.cjs'))
   const desktopSettings = readDesktopSettings(app.getPath('userData'))
   void pruneCrashReports(app.getPath('logs'))
   const journalDirectory = process.env.DSH_DESKTOP_UPDATE_JOURNAL_DIR
@@ -363,6 +359,11 @@ async function main(): Promise<void> {
   const systemLanguages = app.getPreferredSystemLanguages()
   let locale = resolveDesktopStartupLocale(null, systemLanguages)
   windowsLanguage = locale.id
+  launchAnimation = new DesktopStartupAnimation([
+    join(startupResources, 'startup-animation-cyberpunk.mp4'),
+    join(startupResources, 'startup-animation-awakening.mp4'),
+    join(startupResources, 'startup-animation-chibi.mp4'),
+  ], join(app.getAppPath(), 'lib', 'preload-startup.cjs'), locale.messages.startupSkip)
   let mandatoryPolicy: DesktopMandatoryUpdatePolicy | undefined
   let mandatoryUI: DesktopMandatoryUpdateWindow | undefined
   let policyAuth: DesktopPolicyTestAuth | undefined

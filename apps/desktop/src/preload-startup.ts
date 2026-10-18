@@ -7,6 +7,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) { report('reduced-motion'); return }
   const video = document.querySelector('video')
   let frame: number | undefined
+  document.querySelector('button')?.addEventListener('click', () => {
+    if (frame !== undefined) cancelAnimationFrame(frame)
+    video?.pause()
+    report('skip')
+  }, { once: true })
   const tail = (): void => {
     if (video === null || video.ended || video.paused || !Number.isFinite(video.duration) || video.duration < 7) return
     const remaining = (video.duration - video.currentTime) * 1000

@@ -184,9 +184,9 @@ macOS 和 Linux 从图形界面启动的程序只继承会话管理器提供的�
 
 <a id="develop"></a>
 
-Desktop 每次进程启动时从内置赛博朋克和数字角色苏醒视频中随机选一段。启动窗口在主屏幕可用区域最大化打开，以 16:9 等比完整显示画面且不裁切；其他屏幕比例保留黑边。工作区首次显示时最大化，保留正常桌面窗口控件。客户端成功挂载并绘制后，视频在最后两秒继续播放，同时溶解到就绪的窗口。视频结束且可见总时长至少七秒（含溶解）后完成交接。若客户端在播放结束后才挂载，则以两秒溶解最后一帧。加载完成的欢迎页也遵守同样的播放下限。片源失败或操作系统减少动态效果时，使用原加载页继续启动；错误恢复和退出会关闭动画。刷新页面或切换会话不重播。两段视频各约 7.05 秒。视频及其 BSD 许可证来自 [dsh-boot-animation](https://github.com/NativeDog1/dsh-boot-animation)；不会加载选片插件或读取其配置。按视频时间溶解的方式参考 [lxj5820/dsh-boot-animation](https://github.com/lxj5820/dsh-boot-animation)。
+Desktop 每次进程启动时从内置赛博朋克、数字角色苏醒及 chibi 视频中随机选一段。启动窗口在主屏幕可用区域最大化打开，以 16:9 等比完整显示画面且不裁切；其他屏幕比例保留黑边。工作区首次显示时最大化，保留正常桌面窗口控件。客户端成功挂载并绘制后，视频在最后两秒继续播放，同时溶解到就绪的窗口。未跳过时，视频结束且可见总时长至少七秒（含溶解）后完成交接。若客户端在播放结束后才挂载，则以两秒溶解最后一帧。加载完成的欢迎页也遵守同样的播放下限。片源失败或操作系统减少动态效果时，使用原加载页继续启动；错误恢复和退出会关闭动画。刷新页面或切换会话不重播。赛博朋克和数字角色苏醒视频各约 7.05 秒；用户提供的 chibi 视频约 18.33 秒，未跳过时完整播放。每段视频右上角都有半透明的「跳过」按钮，支持鼠标和键盘；点击后立即结束播放或正在进行的溶解，不等待时长下限或视频结束。Host 继续启动：已排队的目标窗口立即显示，否则在可用时进入正常加载流程。跳过仅对本次进程启动生效。chibi 资源保留 3840 × 2160、每秒 60 帧，以 H.264 格式保存，由提供的 HEVC 文件转码而来，未剪辑或裁切；所有启动视频均静音播放。赛博朋克、数字角色苏醒视频及其 BSD 许可证来自 [dsh-boot-animation](https://github.com/NativeDog1/dsh-boot-animation)；不会加载选片插件或读取其配置。按视频时间溶解的方式参考 [lxj5820/dsh-boot-animation](https://github.com/lxj5820/dsh-boot-animation)。
 
-将 `upstream/master` 合并到 fork 的 `master`，同时保留启动模块、沙箱预加载、两段视频、打包条目以及主进程／客户端挂载接线。构建后运行 `pnpm exec vitest run apps/desktop/tests/startup-animation.spec.ts apps/web/tests/desktop-boot.spec.ts` 和 `pnpm --dir apps/desktop run test:startup:local`。后者使用隔离用户数据的真实 Electron，将完整画面、完整播放、七秒下限、尾部及延迟挂载溶解、挂载切换、不重播和片源缺失恢复与本应用的期望输出对比。
+将 `upstream/master` 合并到 fork 的 `master`，同时保留启动模块、沙箱预加载、全部三段视频、打包条目以及主进程／客户端挂载接线。构建后运行 `pnpm exec vitest run apps/desktop/tests/startup-animation.spec.ts apps/web/tests/desktop-boot.spec.ts` 和 `pnpm --dir apps/desktop run test:startup:local`。后者使用隔离用户数据的真实 Electron，将完整画面、完整播放、七秒下限、尾部及延迟挂载溶解、挂载切换、界面就绪前及溶解期间立即跳过、不重播和片源缺失恢复与本应用的期望输出对比。
 
 ## 开发
 

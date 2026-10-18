@@ -1,6 +1,7 @@
 /** Typed English and Chinese copy owned by the Electron shell. */
 
 export const en = {
+  startupSkip: 'Skip',
   cliCommandMenu: 'Manage dsh Command…',
   cliCommandTitle: 'Manage dsh Command',
   cliCommandLocation: 'Desktop command: {path}',
@@ -172,6 +173,7 @@ export const en = {
 export type DesktopMessages = { readonly [Key in keyof typeof en]: string }
 
 export const zh = {
+  startupSkip: '跳过',
   cliCommandMenu: '管理 dsh 命令…',
   cliCommandTitle: '管理 dsh 命令',
   cliCommandLocation: 'Desktop 命令：{path}',

@@ -2,6 +2,7 @@ import { EventEmitter } from 'node:events'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { DESKTOP_IPC } from '../src/ipc.ts'
 import { DesktopStartupAnimation } from '../src/startup-animation.ts'
+import { en } from '../src/locale.ts'
 
 const native = vi.hoisted(() => ({
   createWindow: vi.fn<(options: Electron.BrowserWindowConstructorOptions) => TestWindow>(),
@@ -42,7 +43,7 @@ beforeEach(() => {
   splash = new TestWindow()
   workspace = new TestWindow()
   native.createWindow.mockReturnValue(splash)
-  animation = new DesktopStartupAnimation(['/bundled/startup.mp4'], '/bundled/preload.cjs')
+  animation = new DesktopStartupAnimation(['/bundled/startup.mp4'], '/bundled/preload.cjs', en.startupSkip)
 })
 afterEach(() => { animation.finish(); expect(vi.getTimerCount()).toBe(0); vi.useRealTimers(); vi.clearAllMocks() })
 
@@ -139,7 +140,7 @@ it('releases the timer and IPC without revealing a pending workspace during reco
   expect(splash.show).toHaveBeenCalledTimes(1)
 })
 
-it.each(['error', 'reduced-motion'])('allows %s only from the owned startup frame', (state) => {
+it.each(['error', 'reduced-motion', 'skip'])('allows %s only from the owned startup frame', (state) => {
   animation.start()
   animation.reveal(workspace, true)
   playback(state, workspace)
@@ -149,15 +150,55 @@ it.each(['error', 'reduced-motion'])('allows %s only from the owned startup fram
   expect(workspace.show).toHaveBeenCalledOnce()
 })
 
-it.each([0, 1])('selects pool entry %i once and keeps the same media for all requests', async (index) => {
+it('skips before destination readiness and shows its normal loading window when it becomes available', () => {
+  visiblePlayback()
+  playback('skip')
+  expect(splash.destroy).toHaveBeenCalledOnce()
+  expect(workspace.show).not.toHaveBeenCalled()
+  expect(vi.getTimerCount()).toBe(0)
+  animation.reveal(workspace, true)
+  expect(workspace.show).toHaveBeenCalledOnce()
+  animation.workspaceMounted()
+  expect(native.createWindow).toHaveBeenCalledOnce()
+})
+
+it.each(['playing', 'tail', 'late'])('skips %s without waiting for the minimum, end, or dissolve', (phase) => {
+  visiblePlayback()
+  animation.reveal(workspace, true)
+  animation.workspaceMounted()
+  if (phase === 'tail') {
+    playback('tail', splash, 2000)
+    playback('tail', splash, 1000)
+    expect(splash.setOpacity).toHaveBeenLastCalledWith(0.5)
+  } else if (phase === 'late') {
+    vi.advanceTimersByTime(7000)
+    playback('ended')
+    vi.advanceTimersByTime(16)
+  }
+  playback('skip')
+  expect(workspace.show).toHaveBeenCalledOnce()
+  expect(splash.destroy).toHaveBeenCalledOnce()
+  expect(vi.getTimerCount()).toBe(0)
+})
+
+it('skips the loaded Welcome window immediately', () => {
+  visiblePlayback()
+  animation.welcomeReady(workspace)
+  playback('skip')
+  expect(workspace.show).toHaveBeenCalledOnce()
+  expect(splash.destroy).toHaveBeenCalledOnce()
+  expect(vi.getTimerCount()).toBe(0)
+})
+
+it.each([0, 1, 2])('selects pool entry %i once and keeps the same media for all requests', async (index) => {
   native.randomInt.mockClear().mockReturnValue(index)
-  animation = new DesktopStartupAnimation(['/cyberpunk.mp4', '/awakening.mp4'], '/preload.cjs')
+  animation = new DesktopStartupAnimation(['/cyberpunk.mp4', '/awakening.mp4', '/chibi.mp4'], '/preload.cjs', en.startupSkip)
   native.fetch.mockImplementation(async () => new Response('video'))
   for (let request = 0; request < 2; request++) {
     await animation.response(new Request('dsh-app://startup/video'))
-    expect(native.fetch).toHaveBeenLastCalledWith(['file:///cyberpunk.mp4', 'file:///awakening.mp4'][index], expect.any(Object))
+    expect(native.fetch).toHaveBeenLastCalledWith(['file:///cyberpunk.mp4', 'file:///awakening.mp4', 'file:///chibi.mp4'][index], expect.any(Object))
   }
-  expect(native.randomInt).toHaveBeenCalledExactlyOnceWith(2)
+  expect(native.randomInt).toHaveBeenCalledExactlyOnceWith(3)
 })
 
 it('dissolves into the mounted workspace over the live tail and closes only after seven seconds and ended', () => {

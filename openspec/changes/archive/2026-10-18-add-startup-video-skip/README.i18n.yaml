@@ -1,0 +1,7 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write openspec/changes/archive/2026-10-18-add-startup-video-skip/README.md
+/add-startup-video-skip:
+  en: 747c912df09007d5
+  zh: 25dcb070103ab10a

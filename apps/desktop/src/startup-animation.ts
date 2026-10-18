@@ -28,8 +28,9 @@ export class DesktopStartupAnimation {
   /**
    * @param resources - Nonempty pool of bundled local videos; selected once for this process.
    * @param preload - Bundled sandboxed playback preload.
+   * @param skipLabel - Localized label for the startup playback skip button.
    */
-  constructor(resources: readonly [string, ...string[]], private readonly preload: string) {
+  constructor(resources: readonly [string, ...string[]], private readonly preload: string, private readonly skipLabel: string) {
     // randomInt has an exclusive upper bound, and the tuple is nonempty.
     this.resource = resources[randomInt(resources.length)] as string
   }
@@ -58,7 +59,7 @@ export class DesktopStartupAnimation {
         this.tailRemaining = remaining
         this.tryReveal()
       }
-      else if (state === 'error' || state === 'reduced-motion') this.finish(true)
+      else if (state === 'error' || state === 'reduced-motion' || state === 'skip') this.finish(true)
       else throw new Error('Desktop startup: invalid playback signal')
     }
     ipcMain.on(DESKTOP_IPC.startupPlayback, playback)
@@ -92,9 +93,12 @@ export class DesktopStartupAnimation {
       return net.fetch(pathToFileURL(this.resource).href, { method: request.method, headers: request.headers })
     }
     if (url.pathname !== '/') return Promise.resolve(new Response(null, { status: 404 }))
+    const skipLabel = this.skipLabel.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
     const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><style>
       html,body{margin:0;width:100%;height:100%;background:#000;overflow:hidden}video{display:block;width:100%;height:100%;object-fit:contain}
-      </style></head><body><video aria-hidden="true" muted autoplay playsinline src="${SCHEME}://startup/video"></video></body></html>`
+      button{position:fixed;top:24px;right:24px;min-height:44px;padding:8px 20px;border:1px solid rgb(255 255 255 / 45%);border-radius:999px;background:rgb(0 0 0 / 55%);backdrop-filter:blur(8px);color:#fff;font:14px system-ui,sans-serif;cursor:pointer}
+      @media(hover:hover){button:hover{background:rgb(0 0 0 / 70%)}}button:focus-visible{outline:2px solid #fff;outline-offset:3px}
+      </style></head><body><video aria-hidden="true" muted autoplay playsinline src="${SCHEME}://startup/video"></video><button type="button">${skipLabel}</button></body></html>`
     return Promise.resolve(new Response(request.method === 'HEAD' ? null : html, { headers: {
       'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store',
       'content-security-policy': `default-src 'none'; media-src ${SCHEME}:; style-src 'unsafe-inline'`,
@@ -187,8 +191,8 @@ export class DesktopStartupAnimation {
   }
 
   /**
-   * Close during handoff, recovery, media failure, reduced motion, or quit.
-   * @param revealPending - Present the queued destination with its requested activation after handoff or animation failure.
+   * Close during handoff, skip, recovery, media failure, reduced motion, or quit.
+   * @param revealPending - Present the queued destination after handoff, skip, or animation failure; Host startup continues independently.
    */
   finish(revealPending = false): void {
     this.clearTimer()
