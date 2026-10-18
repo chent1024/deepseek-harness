@@ -35,18 +35,19 @@ function record(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * Authenticate the native HTTP client through the Web application's launch URL.
+ * Connect native welcome operations using the cookie owned by the current Host.
  * @param authenticatedUrl - URL supplied by the running Desktop Host.
- * @param send - Electron session fetch, retaining the Web authentication cookie.
+ * @param cookie - Cookie returned by the Host launch-token exchange.
+ * @param send - Node fetch, sending only the supplied Host cookie.
  * @returns metadata reads and write-only credential operations over standard RPC.
  */
 export async function connectDesktopWelcome(
   authenticatedUrl: string,
-  send: (input: string, init?: RequestInit) => Promise<Response>,
-  cookies: () => Promise<string> = () => Promise.resolve(''),
+  cookie: string,
+  send: (input: string, init?: RequestInit) => Promise<Response> = fetch,
 ): Promise<DesktopWelcomeBackend> {
   const origin = new URL(authenticatedUrl).origin
-  const authenticated = await send(authenticatedUrl, { credentials: 'include' })
+  const authenticated = await send(origin, { headers: { cookie }, redirect: 'error' })
   await authenticated.body?.cancel()
   if (!authenticated.ok) throw new Error('desktop welcome: Web authentication failed')
   const invoke = async (
@@ -56,8 +57,8 @@ export async function connectDesktopWelcome(
     const rpcId = randomUUID()
     const method = `${request.namespace}/${request.method}`
     const response = await send(new URL(`/api/${method}`, origin).href, {
-      method: 'POST', credentials: 'include', redirect: 'error', ...(signal === undefined ? {} : { signal }),
-      headers: { 'content-type': 'application/json' },
+      method: 'POST', redirect: 'error', ...(signal === undefined ? {} : { signal }),
+      headers: { 'content-type': 'application/json', cookie },
       body: JSON.stringify({ type: 'client-request', rpcId, method, payload: { args: request.args } }),
     })
     if (!response.ok) throw new Error('desktop welcome: Web request failed')
@@ -68,7 +69,7 @@ export async function connectDesktopWelcome(
     }
     return envelope.result.value
   }
-  const account = desktopAccountBackend(origin, invoke, cookies)
+  const account = desktopAccountBackend(origin, invoke, () => Promise.resolve(cookie))
   const settingsAndReference = async () => {
     const settings = await invoke({ namespace: 'settings', method: 'describe', args: {} })
     if (!record(settings) || !Array.isArray(settings.namespaces)) throw new Error('desktop welcome: missing settings namespaces')

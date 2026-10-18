@@ -374,14 +374,14 @@ vi.mock('../src/platform-view.ts', async importOriginal => ({
   },
 }))
 vi.mock('../src/welcome-backend.ts', () => ({
-  connectDesktopWelcome: async () => ({
+  connectDesktopWelcome: vi.fn(async () => ({
     analyticsEnabled: async () => harness.analyticsEnabled,
     report: harness.analytics,
     readLocalePreference: async () => null,
     read: async (): Promise<unknown> => (await harness.hosts.at(-1)!.fetch()).json() as Promise<unknown>,
     save: async () => ({ ok: true }),
     account: { watch: harness.watchAccount, state: async () => ({ status: 'signed-out', attempt: null }) },
-  }),
+  })),
 }))
 
 function configureTestAuthPopup(allow: boolean): void {
@@ -456,6 +456,12 @@ afterEach(async () => {
 })
 
 describe('desktop main startup', () => {
+  it('binds native welcome requests to the current Host cookie without a Chromium cookie reader', async () => {
+    await readyForUpdate()
+    const { connectDesktopWelcome } = await import('../src/welcome-backend.ts')
+    expect(connectDesktopWelcome).toHaveBeenCalledExactlyOnceWith('http://127.0.0.1:3080/?token=test', 'test-cookie')
+  })
+
   it.each([true, false])('selects the package manager before Host startup (packaged=%s)', async (packaged) => {
     harness.app.isPackaged = packaged
     await readyForUpdate()
