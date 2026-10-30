@@ -1,3 +1,4 @@
+import { SHIPPED_LOCALE_IDS } from '../../../scripts/shipped-locales.ts'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -51,14 +52,15 @@ describe('desktop macOS release signature', () => {
     expect(config.protocols).toEqual([{ name: 'DeepSeek Harness', schemes: ['dsh'] }])
     expect(portablePath(config.directories.output)).toContain('/.desktop-build/targets/mac-arm64/artifacts')
     expect(config.mac.extendInfo.NSMicrophoneUsageDescription).toContain('microphone')
+    expect(config.mac.extendInfo.CFBundleLocalizations).toEqual(SHIPPED_LOCALE_IDS.map(id => id === 'zh' ? 'zh_CN' : id))
     expect(config.mac.entitlementsInherit).toBe(config.mac.entitlements)
     const entitlements = readFileSync(config.mac.entitlements, 'utf8')
     for (const key of ['com.apple.security.cs.allow-jit', 'com.apple.security.cs.allow-unsigned-executable-memory',
       'com.apple.security.cs.disable-library-validation', 'com.apple.security.device.audio-input']) {
       expect(entitlements).toContain(`<key>${key}</key>\n    <true/>`)
     }
-    expect(config.extraResources).toHaveLength(5)
-    expect(config.extraResources.map(resource => resource.to)).toEqual(['runtime', 'icon.png', 'startup-animation-cyberpunk.mp4', 'startup-animation-awakening.mp4', 'startup-animation.LICENSE'])
+    expect(config.extraResources).toHaveLength(6)
+    expect(config.extraResources.map(resource => resource.to)).toEqual(['runtime', 'icon.png', 'startup-animation-cyberpunk.mp4', 'startup-animation-awakening.mp4', 'startup-animation-chibi.mp4', 'startup-animation.LICENSE'])
     expect(config.files).toContain('lib/preload-startup.cjs')
     expect(config.extraResources[0]?.to).toBe('runtime')
     expect(portablePath(config.extraResources[0]?.from ?? '')).toContain('/.desktop-build/targets/mac-arm64/runtime')

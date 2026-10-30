@@ -87,20 +87,6 @@ function usageOf(event: SessionEvent): TokenUsage | undefined {
   return lastAssistantStreamChunk(event.data.stream, 'usage')?.usage
 }
 
-declare module '@deepseek-ai/dsh-session-projection/types' {
-  interface SessionProjectionStateMap {
-    tokenUsage: TokenUsageState
-    contextPressure: ContextPressureState
-  }
-}
-
-declare module '@deepseek-ai/dsh-session/types' {
-  interface SessionEventMap {
-    /** Exact current occupancy reported by an external agent; informational, never billable usage. */
-    'token-meter/context-observed': { usedTokens: number; contextWindow: number }
-  }
-}
-
 /** The context-pressure state schema and source of its inferred type. */
 const contextPressureStateSchema = z.object({
   contextWindow: z.number().int().positive().optional(),
@@ -115,7 +101,8 @@ const contextPressureStateSchema = z.object({
   }).optional(),
 }).strict()
 
-type ContextPressureState = z.infer<typeof contextPressureStateSchema>
+/** Host fold state for provider pressure and surface adjustments. */
+export type ContextPressureState = z.infer<typeof contextPressureStateSchema>
 
 /**
  * Token-meter's session projection unit.
@@ -182,7 +169,7 @@ export const tokenUsageProjectionDefinition = {
  */
 export const contextPressureProjectionDefinition = {
   key: 'contextPressure',
-  stateVersion: 6,
+  stateVersion: 7,
   stateSchema: contextPressureStateSchema,
   init: () => ({ surfaceTokens: 0 }),
   apply: (state, event) => {

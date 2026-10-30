@@ -1,77 +1,14 @@
 {
   "formatVersion": 2,
   "roots": [
-    {
-      "key": "event:token-meter/context-observed",
-      "kind": "event",
-      "event": "token-meter/context-observed",
-      "surface": false,
-      "digest": "118db853acb559cbc3f01d6232a0e9a607d3cce318e180279311464c0b833fb6",
-      "schema": {
-        "root": 0,
-        "nodes": [
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "data",
-                "type": 1,
-                "optional": false
-              },
-              {
-                "name": "ignorable",
-                "type": 3,
-                "optional": true
-              },
-              {
-                "name": "seq",
-                "type": 2,
-                "optional": false
-              },
-              {
-                "name": "time",
-                "type": 2,
-                "optional": false
-              },
-              {
-                "name": "type",
-                "type": 4,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "contextWindow",
-                "type": 2,
-                "optional": false
-              },
-              {
-                "name": "usedTokens",
-                "type": 2,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "primitive",
-            "type": "number"
-          },
-          {
-            "kind": "literal",
-            "value": true
-          },
-          {
-            "kind": "literal",
-            "value": "token-meter/context-observed"
-          }
-        ]
-      }
-    }
+    {"key":"event:token-meter/context-observed","kind":"event","event":"token-meter/context-observed","surface":false,"digest":"118db853acb559cbc3f01d6232a0e9a607d3cce318e180279311464c0b833fb6"}
   ],
-  "types": []
+  "types": [],
+  "nodes": {
+    "0657d3ca5ac4e7bf": {"kind":"primitive","type":"number"},
+    "118db853acb559cb": {"kind":"object","properties":[{"name":"data","type":"68225202f7092531","optional":false},{"name":"ignorable","type":"dacf3d5f3e4ff619","optional":true},{"name":"seq","type":"0657d3ca5ac4e7bf","optional":false},{"name":"time","type":"0657d3ca5ac4e7bf","optional":false},{"name":"type","type":"479b2a08befcb5ce","optional":false}],"indices":[]},
+    "479b2a08befcb5ce": {"kind":"literal","value":"token-meter/context-observed"},
+    "68225202f7092531": {"kind":"object","properties":[{"name":"contextWindow","type":"0657d3ca5ac4e7bf","optional":false},{"name":"usedTokens","type":"0657d3ca5ac4e7bf","optional":false}],"indices":[]},
+    "dacf3d5f3e4ff619": {"kind":"literal","value":true}
+  }
 }

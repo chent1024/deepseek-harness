@@ -78,3 +78,10 @@ declare module '@deepseek-ai/dsh-session-projection/types' {
     contextBreakdown: ContextBreakdownProjection
   }
 }
+
+declare module '@deepseek-ai/dsh-session/types' {
+  interface SessionEventMap {
+    /** Exact current occupancy reported by an external agent; informational, never billable usage. */
+    'token-meter/context-observed': { usedTokens: number; contextWindow: number }
+  }
+}
