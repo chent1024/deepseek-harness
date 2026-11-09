@@ -4,6 +4,7 @@ import { lstat, readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { readAsar, type Node } from 'app-builder-lib/out/asar/asar.js'
 import type { DesktopRuntimeDescriptor, DesktopRuntimeFile } from '../src/runtime-tree.ts'
+import { verifyDesktopCuaHelper } from './prepare-local-cua-helper.ts'
 
 /**
  * Compare the complete archived dsh tree with the sealed preparation inventory.
@@ -50,4 +51,7 @@ export async function verifyRuntimeArchive(archivePath: string, expected: Deskto
   }
   files.sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0)
   if (JSON.stringify(files) !== JSON.stringify(expected.files)) throw new Error('desktop runtime: ASAR integrity verification failed')
+  if (expected.platform === 'darwin' && expected.sharedPackages.some(entry => entry.name === '@deepseek-ai/dsh-experimental-cua-macos')) {
+    verifyDesktopCuaHelper(join(`${archivePath}.unpacked`, 'dsh/node_modules/@deepseek-ai/dsh-experimental-cua-macos/native/bin', `darwin-${expected.arch}`), expected.arch)
+  }
 }

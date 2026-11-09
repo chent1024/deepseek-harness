@@ -130,7 +130,7 @@ describe.skipIf(!existsSync(builtHost))('built Desktop welcome flow', () => {
         host = new DesktopHostProcess(process.execPath, project, paths.profile)
         const { url } = await host.start()
         hostOrigin = new URL(url).origin
-        backend = await connectDesktopWelcome(url, await authenticateWebHost(url))
+        backend = connectDesktopWelcome(url, await authenticateWebHost(url))
       }
       const status = async () => backend.read()
       const fingerprint = (): string => createHash('sha256')

@@ -108,7 +108,7 @@ describe.skipIf(MODE === 'record')('web e2e: App-only desktop onboarding', () =>
 
   async function desktopPage(locale = ZH_BROWSER_LOCALE): Promise<Page> {
     const opened = await browser.newPage({ viewport: { width: 1280, height: 840 }, locale, reducedMotion: 'reduce' })
-    const welcome = await connectDesktopWelcome(scaffold.authenticatedUrl, await authenticateWebHost(scaffold.authenticatedUrl))
+    const welcome = connectDesktopWelcome(scaffold.baseUrl, await authenticateWebHost(scaffold.authenticatedUrl))
     await opened.exposeFunction('__onboardingHasApiKey', async () => (await welcome.read()).hasApiKey)
     await opened.addInitScript(() => {
       Object.defineProperty(globalThis, 'dshOnboarding', { value: {

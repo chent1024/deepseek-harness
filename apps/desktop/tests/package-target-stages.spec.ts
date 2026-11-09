@@ -207,6 +207,14 @@ it.each(['--unsigned', '--prepare-only'])('keeps %s hardware-free and creates no
   expect(stages.includes('exec tsx scripts/smoke-packaged-runtime.ts --unsigned')).toBe(mode === '--unsigned')
 })
 
+it('stops a local macOS package before packing when helper preparation fails', async () => {
+  const failure = 'exec tsx apps/desktop/scripts/prepare-local-cua-helper.ts'
+  const { run, stages } = supervisor(failure)
+  await expect(packageTarget(parseDesktopPackageInvocation(['mac-arm64', '--unsigned'], 'darwin', 'arm64'), environment, run)).rejects.toThrow('stage refused')
+  expect(stages.at(-1)).toBe(failure)
+  expect(stages.some(stage => stage.includes('pack-local-packages'))).toBe(false)
+})
+
 it.each(['mac-arm64', 'mac-x64', 'win-x64'] as const)('selects branding from the signing mode for %s', async (target) => {
   const modes = [[], ['--unsigned'], ['--dir'], ['--unsigned', '--dir'], ['--prepare-only'],
     ...(target === 'win-x64' ? [] : [['--skip-notarization'], ['--skip-notarization', '--dir']])]
@@ -227,6 +235,11 @@ it.each(['mac-arm64', 'mac-x64', 'win-x64'] as const)('selects branding from the
     expect(build).toBe(unsigned ? 'run build --profile local' : 'run build:official')
     expect(stages.some(stage => stage.startsWith('exec tsx apps/desktop/scripts/pack-local-packages.ts'))).toBe(unsigned)
     expect(stages.some(stage => stage.startsWith('run release:pack --family dsh'))).toBe(!unsigned)
+    const helper = stages.indexOf('exec tsx apps/desktop/scripts/prepare-local-cua-helper.ts')
+    if (unsigned && platform === 'darwin') {
+      expect(helper).toBeGreaterThan(stages.indexOf(build!))
+      expect(helper).toBeLessThan(stages.findIndex(stage => stage.startsWith('exec tsx apps/desktop/scripts/pack-local-packages.ts')))
+    } else expect(helper).toBe(-1)
   }
 })
 
