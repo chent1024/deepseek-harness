@@ -1,7 +1,6 @@
 /** Typed shell copy for every shipped language owned by the Electron shell. */
 
 export const en = {
-  startupSkip: 'Skip',
   cliCommandMenu: 'Manage dsh Command…',
   cliCommandTitle: 'Manage dsh Command',
   cliCommandLocation: 'Desktop command: {path}',
@@ -197,7 +196,6 @@ export const en = {
 export type DesktopMessages = { readonly [Key in keyof typeof en]: string }
 
 export const zh = {
-  startupSkip: '跳过',
   cliCommandMenu: '管理 dsh 命令…',
   cliCommandTitle: '管理 dsh 命令',
   cliCommandLocation: 'Desktop 命令：{path}',
@@ -391,7 +389,6 @@ export const zh = {
 
 /** Japanese copy, checked against the English keys. */
 export const ja = {
-  startupSkip: 'スキップ',
   cliCommandMenu: 'dsh コマンドを管理…',
   cliCommandTitle: 'dsh コマンドを管理',
   cliCommandLocation: 'デスクトップコマンド: {path}',
@@ -585,7 +582,6 @@ export const ja = {
 
 /** Spanish dictionary, checked against the English keys. */
 export const es = {
-  startupSkip: 'Omitir',
   cliCommandMenu: 'Administrar el comando dsh…',
   cliCommandTitle: 'Administrar el comando dsh',
   cliCommandLocation: 'Comando de escritorio: {path}',
@@ -779,7 +775,6 @@ export const es = {
 
 /** French dictionary, checked against the English keys. */
 export const fr = {
-  startupSkip: 'Passer',
   cliCommandMenu: 'Gérer la commande dsh…',
   cliCommandTitle: 'Gérer la commande dsh',
   cliCommandLocation: 'Commande de bureau : {path}',
@@ -973,7 +968,6 @@ export const fr = {
 
 /** German dictionary, checked against the English keys. */
 export const de = {
-  startupSkip: 'Überspringen',
   cliCommandMenu: 'dsh-Befehl verwalten…',
   cliCommandTitle: 'dsh-Befehl verwalten',
   cliCommandLocation: 'Desktop-Befehl: {path}',
@@ -1167,7 +1161,6 @@ export const de = {
 
 /** Russian dictionary, checked against the English keys. */
 export const ru = {
-  startupSkip: 'Пропустить',
   cliCommandMenu: 'Управление командой dsh…',
   cliCommandTitle: 'Управление командой dsh',
   cliCommandLocation: 'Команда Desktop: {path}',
@@ -1361,7 +1354,6 @@ export const ru = {
 
 /** Portuguese dictionary, checked against the English keys. */
 export const pt = {
-  startupSkip: 'Pular',
   cliCommandMenu: 'Gerenciar comando dsh…',
   cliCommandTitle: 'Gerenciar comando dsh',
   cliCommandLocation: 'Comando da área de trabalho: {path}',

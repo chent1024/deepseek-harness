@@ -19,8 +19,7 @@ export interface DesktopElectronBuilderConfig {
   readonly extraResources: readonly [
     { readonly from: string, readonly to: 'runtime' },
     { readonly from: string, readonly to: 'icon.png' },
-    ...{ readonly from: string, readonly to: 'tray.ico'
-      | 'startup-animation-cyberpunk.mp4' | 'startup-animation-awakening.mp4' | 'startup-animation.LICENSE' }[],
+    ...{ readonly from: string, readonly to: 'tray.ico' }[],
   ]
   readonly mac: {
     readonly extendInfo: {

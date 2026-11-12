@@ -29,6 +29,7 @@ import { installWindowsDirectoryInstaller } from './windows-directory-installer.
 import { preserveWindowsRuntimeSignature, signWindowsCode } from './windows-runtime-signature.mjs'
 import { prepareWindowsAsarUnpack, verifyWindowsAsarUnpack } from './windows-asar-unpack.mjs'
 import { recordPackagingEvent } from './packaging-run.mjs'
+import { resolveLocalMacOSSigning, signLocalMacOSApplication } from './local-macos-signing.mjs'
 import {
   resolveMacOSAppUpdateFeed,
   verifyMacOSAppUpdateConfig,
@@ -59,6 +60,7 @@ export function createElectronBuilderConfig(
     throw new Error('desktop package: DSH_DESKTOP_UNSIGNED must be 0 or 1')
   }
   const unsigned = env.DSH_DESKTOP_UNSIGNED === '1'
+  if (unsigned && resolvedPlatform === 'darwin') resolveLocalMacOSSigning(env)
   const skipNotarization = env.DSH_DESKTOP_MACOS_SKIP_NOTARIZATION === '1'
   if (env.DSH_DESKTOP_MACOS_SKIP_NOTARIZATION !== undefined && !['0', '1'].includes(env.DSH_DESKTOP_MACOS_SKIP_NOTARIZATION)) {
     throw new Error('desktop package: DSH_DESKTOP_MACOS_SKIP_NOTARIZATION must be 0 or 1')
@@ -144,7 +146,6 @@ export function createElectronBuilderConfig(
       'lib/operation-report-worker.js',
       'lib/welcome/**/*',
       'lib/preload-app.cjs',
-      'lib/preload-startup.cjs',
       'lib/preload-mandatory.cjs',
       'lib/preload-platform-account.cjs',
       'lib/preload-update-dialog.cjs',
@@ -163,10 +164,6 @@ export function createElectronBuilderConfig(
       { from: fileURLToPath(new URL('../resources/icon-windows.png', import.meta.url)), to: 'icon.png' },
       // Windows tray bitmaps; macOS keeps the Dock and ships no menu bar icon.
       ...(packagesWindows ? [{ from: fileURLToPath(new URL('../resources/tray-windows.ico', import.meta.url)), to: 'tray.ico' }] : []),
-      ...['cyberpunk', 'awakening', 'chibi'].map(name => ({
-        from: fileURLToPath(new URL(`../resources/startup-animation-${name}.mp4`, import.meta.url)), to: `startup-animation-${name}.mp4`,
-      })),
-      { from: fileURLToPath(new URL('../resources/startup-animation.LICENSE', import.meta.url)), to: 'startup-animation.LICENSE' },
     ],
     mac: {
       icon: fileURLToPath(new URL('../resources/icon-macos.png', import.meta.url)),
@@ -229,8 +226,13 @@ export function createElectronBuilderConfig(
         })
         await verifyWindowsAsarUnpack(buildPaths.dsh, context.packager.getResourcesDir(context.appOutDir), windowsCode)
       }
-      if (context.electronPlatformName !== 'darwin' || unsigned) return
+      if (context.electronPlatformName !== 'darwin') return
+      if (unsigned && resolveLocalMacOSSigning(env) === undefined) return
       const appPath = join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`)
+      if (unsigned) {
+        signLocalMacOSApplication(appPath, env, fileURLToPath(new URL('./macos-entitlements.plist', import.meta.url)))
+        return
+      }
       if (update !== undefined) {
         await verifyMacOSAppUpdateConfig(appPath, resolveMacOSAppUpdateFeed(context.packager.config.publish),
           context.packager.appInfo.updaterCacheDirName)

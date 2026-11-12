@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { readCuaApplication } from '../../../scripts/cua-helper/payload.ts'
+import { resolveLocalMacOSSigning } from './local-macos-signing.mjs'
 import { resolveDesktopTargetBuildPaths, resolveDesktopBuildTarget, desktopTargetPlatform } from './desktop-build-paths.mjs'
 
 /**
@@ -30,9 +31,11 @@ if (import.meta.main) {
   const output = join(paths.root, 'local-cua-helper')
   rmSync(output, { recursive: true, force: true })
   mkdirSync(output, { recursive: true })
+  const signing = resolveLocalMacOSSigning()
   execFileSync('/usr/bin/xcrun', ['python3', join(provider, 'native/build_app.py'),
     '--arch', target.arch === 'x64' ? 'x86_64' : target.arch,
-    '--scratch-path', join(paths.root, 'cua-swift'), '--output-directory', output], { stdio: 'inherit' })
+    '--scratch-path', join(paths.root, 'cua-swift'), '--output-directory', output,
+    ...(signing === undefined ? [] : ['--identity', signing.identity, '--keychain', signing.keychain])], { stdio: 'inherit' })
   verifyDesktopCuaHelper(output, target.arch)
   const destination = join(provider, 'native/bin', `darwin-${target.arch}`)
   rmSync(destination, { recursive: true, force: true })

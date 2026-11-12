@@ -176,7 +176,11 @@ pnpm run package:desktop:mac:x64:unsigned
 
 添加 `--check` 仅验证本地配置和工具而不构建，或添加 `--dir` 只生成解包应用。DMG 路径为 `apps/desktop/.desktop-build/targets/<target>/unsigned-artifacts/deepseek-harness-<version>-mac-<arch>-unsigned.dmg`。所有检查通过后，命令打印 `DMG:` 及其绝对路径。打开后将应用复制到本地测试目录。
 
-这些命令忽略 `.env.macos` 和继承的发布配置，使用 `com.deepseek.harness` 作为应用 ID，并省略自动更新和强制更新配置。构建工具、标准网络代理与 `DSH_DESKTOP_NPM_REGISTRY` 仍可从 shell 提供。它们跳过 Developer ID 签名、Apple 公证、临时签名钥匙串和公证代理修改。Electron 使用无需证书的本地 ad-hoc 签名，以便修改后的可执行文件能够运行；DMG 不签名。准备阶段和组装后的应用仍执行运行时完整性与冒烟检查。本地构建不生成更新源、ZIP 或发布完成记录，上传命令无法发布这些产物。macOS 可能要求在“系统设置 → 隐私与安全性”中批准打开未经公证的应用。本机 macOS 构建会编译目标架构的 Computer Use helper，并在运行时封装前及 ASAR 解包后核验完整文件、签名和架构。
+这些命令忽略 `.env.macos` 和继承的发布配置，使用 `com.deepseek.harness` 作为应用 ID，并省略自动更新和强制更新配置。构建工具、标准网络代理与 `DSH_DESKTOP_NPM_REGISTRY` 仍可从 shell 提供。它们跳过 Developer ID 签名、Apple 公证、临时签名钥匙串和公证代理修改。未配置个人签名身份时，Electron 使用本地 ad-hoc 签名，以便修改后的可执行文件能够运行；DMG 不签名。准备阶段和组装后的应用仍执行运行时完整性与冒烟检查。本地构建不生成更新源、ZIP 或发布完成记录，上传命令无法发布这些产物。macOS 可能要求在“系统设置 → 隐私与安全性”中批准打开未经公证的应用。本机 macOS 构建会编译目标架构的 Computer Use helper，并在运行时封装前及 ASAR 解包后核验完整文件、签名和架构。
+
+若 `~/.cua-macos-keys/dev/identity.json` 存在，本机 macOS 构建会复用 `python3 .agents/skills/dsh-cua-macos-signing/scripts/signing_identity.py setup` 创建的个人签名身份。构建只将公开指纹和钥匙串路径传入子进程。helper 与外层 Desktop 应用使用同一证书，保留各自独立的 bundle identifier；嵌套运行时签名保持不变。未配置时保留 ad-hoc 模式；配置损坏或签名失败会停止打包，不降级。钥匙串锁定或重启后，重新运行 setup 来解锁并复用已有身份。显式指定 `DSH_DESKTOP_LOCAL_SIGNING_IDENTITY` 和 `DSH_DESKTOP_LOCAL_SIGNING_KEYCHAIN` 可共同选择另一个已有证书。钥匙串及私有记录保存在 Git 和 DSH home 之外。首次权限仍需手动授予，重建后应检查实际授权。这类本机证书不提供 Developer ID 分发身份或 Apple 公证。
+
+独立本机安装时，将目标 `local-cua-helper/current.json` 选中的已核验 `DSH Computer Use.app` 复制到 `/Applications/DSH Computer Use.app`，通过提供方已有的 [helperPath 配置](../../../packages/experimental/cua-macos/README.zh.md#use-this-package)选择其中的可执行文件。helper 与 Desktop 同步更新，保留两者的旧版本供回滚。Desktop profile 的 `cua` 配置中其他字段必须保留；Cordis 配置 patch 会替换完整对象。
 
 <a id="macos-release-signing"></a>
 

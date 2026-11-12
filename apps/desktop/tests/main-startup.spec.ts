@@ -1,17 +1,5 @@
 import { parsePluginOperationRecord } from '@deepseek-ai/dsh-plugin-manager/diagnostic'
 import type { DesktopHostProcess } from '../src/host-process.ts'
-vi.mock('../src/startup-animation.ts', () => ({ DesktopStartupAnimation: class {
-  start(): void {}
-  focus(): boolean { return false }
-  finish(): void {}
-  workspaceMounted(): void {}
-  welcomeReady(): void {}
-  response(): Promise<Response> { return Promise.resolve(new Response(null, { status: 404 })) }
-  reveal(window: { show(): void; showInactive(): void }, activate: boolean): void {
-    if (activate) window.show()
-    else window.showInactive()
-  }
-} }))
 import type { AccountView } from '@deepseek-ai/dsh-deepseek-account/types'
 import { WINDOWS_TITLEBAR_HEIGHT } from '../src/windows-layout.ts'
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
@@ -117,7 +105,6 @@ const harness = await vi.hoisted(async () => {
     readonly moveTop = vi.fn()
     readonly setAlwaysOnTop = vi.fn()
     readonly restore = vi.fn()
-    readonly maximize = vi.fn()
     readonly setSize = vi.fn()
     readonly getBounds = vi.fn(() => ({ x: 0, y: 0, width: 800, height: 700 }))
     readonly setMinimumSize = vi.fn()
@@ -516,7 +503,6 @@ afterEach(async () => {
 })
 
 describe('desktop main startup', () => {
-
   it.each([true, false])('selects the package manager before Host startup (packaged=%s)', async (packaged) => {
     harness.app.isPackaged = packaged
     await readyForUpdate()
@@ -1183,19 +1169,6 @@ describe('desktop main startup', () => {
       expect(window.options).not.toHaveProperty('vibrancy')
     }
     expect(harness.hosts).toHaveLength(0)
-  })
-
-  it.each(['darwin', 'win32', 'linux'] as const)('maximizes the %s workspace only on its first presentation', async (platform) => {
-    vi.spyOn(process, 'platform', 'get').mockReturnValue(platform)
-    await import('../src/main.ts')
-    await harness.preparing.promise
-    const window = harness.windows[0]!
-    expect(window.maximize).not.toHaveBeenCalled()
-    window.emit('show')
-    expect(window.maximize).toHaveBeenCalledOnce()
-    expect(window.setFullScreen).not.toHaveBeenCalled()
-    window.emit('show')
-    expect(window.maximize).toHaveBeenCalledOnce()
   })
 
   it.each([[false, '#f9fafb'], [true, '#1b1b1c']] as const)('paints the Windows workspace in its startup palette (dark=%s)', async (dark, color) => {

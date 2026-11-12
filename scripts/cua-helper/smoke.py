@@ -48,6 +48,13 @@ def wait_for_exit(pid, seconds):
     return False
 
 
+def validate_capabilities(result):
+    """The native reply owns permissions; the provider supplies static platform fields."""
+    permissions = result["permissions"]
+    assert isinstance(permissions["accessibility"], bool) and isinstance(permissions["screenRecording"], bool), result
+    assert result["sessionLocked"] is None or isinstance(result["sessionLocked"], bool), result
+
+
 def main():
     executable = Path(sys.argv[1]).resolve(strict=True)
     key = hashlib.sha256(executable.read_bytes()).hexdigest()
@@ -78,7 +85,7 @@ def main():
                     assert response["id"] == method and "result" in response, response
                     result = response["result"]
                     if method == "getCapabilities":
-                        assert result["platform"] == "macos", result
+                        validate_capabilities(result)
                     else:
                         assert result["launchApplication"]["name"] == executable.parents[2].name, result.get("launchApplication", {}).get("name")
                         assert isinstance(result["accessibility"], bool) and isinstance(result["screenRecording"], bool)
@@ -88,6 +95,7 @@ def main():
             assert wait_for_exit(pid, 10), "helper remained alive after its final connection closed"
             pid = None
             print("CUA distribution smoke: capabilities, helper identity and cleanup passed")
+            print(json.dumps({"accessibility": result["accessibility"], "screenRecording": result["screenRecording"]}))
         finally:
             if pid is not None:
                 for action in [signal.SIGTERM, signal.SIGKILL]:
@@ -99,8 +107,8 @@ def main():
                         break
                 else:
                     raise RuntimeError("failed helper did not exit during cleanup")
-            run_checked(["/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister",
-                         "-u", str(executable.parents[2])], 10)
+            # The launcher manages a persistent, signature-verified standalone bundle.
+            # This connection owns its daemon, not that shared bundle's registration.
 
 
 if __name__ == "__main__":

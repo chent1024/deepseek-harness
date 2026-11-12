@@ -11,6 +11,12 @@ import smoke
 
 
 class SmokeDiagnostics(unittest.TestCase):
+    def test_native_capabilities_need_no_provider_owned_platform_field(self):
+        smoke.validate_capabilities({"permissions": {"accessibility": True, "screenRecording": False}, "sessionLocked": None})
+        for result in [{"platform": "macos"}, {"permissions": {"accessibility": "true", "screenRecording": False}, "sessionLocked": False}]:
+            with self.subTest(result=result), self.assertRaises((KeyError, AssertionError)):
+                smoke.validate_capabilities(result)
+
     def test_success_returns_captured_reply_without_replaying_it(self):
         result = subprocess.CompletedProcess(["helper"], 0, b'{"type":"ready"}', b"")
         diagnostics = io.StringIO()
